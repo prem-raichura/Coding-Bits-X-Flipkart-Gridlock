@@ -1,0 +1,212 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button } from '@/components/Button';
+import { Field } from '@/components/Field';
+import { useAuth } from '@/lib/auth';
+import { colors, gradients, radius, spacing, type } from '@/lib/theme';
+
+export default function RegisterScreen() {
+  const { register } = useAuth();
+  const router = useRouter();
+  const [form, setForm] = useState({ name: '', email: '', number: '', police_station: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  function set(key: keyof typeof form) {
+    return (val: string) => setForm((f) => ({ ...f, [key]: val }));
+  }
+
+  async function handleRegister() {
+    if (!form.name || !form.email || !form.number || !form.police_station) {
+      setError('All fields are required.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await register(form);
+      setDone(true);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Registration failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (done) {
+    return (
+      <LinearGradient colors={gradients.navy} style={styles.bg}>
+        <SafeAreaView style={styles.center}>
+          <View style={styles.successIcon}>
+            <Ionicons name="checkmark-circle" size={56} color={colors.risk.low} />
+          </View>
+          <Text style={styles.doneTitle}>Registration submitted</Text>
+          <Text style={styles.doneSub}>
+            Your request is pending admin approval. You'll receive login credentials by email once approved.
+          </Text>
+          <Button
+            title="Back to Sign in"
+            icon="arrow-back-outline"
+            variant="outline"
+            onPress={() => router.replace('/(auth)/login')}
+            style={{ marginTop: spacing.lg, alignSelf: 'stretch' }}
+          />
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
+  return (
+    <LinearGradient colors={gradients.navy} style={styles.bg}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+            <Pressable onPress={() => router.back()} style={styles.back} hitSlop={10}>
+              <Ionicons name="chevron-back" size={22} color={colors.white} />
+              <Text style={styles.backText}>Back</Text>
+            </Pressable>
+
+            <View style={styles.card}>
+              <View style={styles.cardIcon}>
+                <Ionicons name="person-add" size={26} color={colors.accent} />
+              </View>
+              <Text style={styles.heading}>Create account</Text>
+              <Text style={styles.sub}>Submit your details for admin approval</Text>
+
+              <Field label="Full name" icon="person-outline" value={form.name} onChangeText={set('name')} placeholder="Ravi Kumar" />
+              <Field
+                label="Email"
+                icon="mail-outline"
+                value={form.email}
+                onChangeText={set('email')}
+                placeholder="you@btp.karnataka.gov.in"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <Field
+                label="Mobile number"
+                icon="call-outline"
+                value={form.number}
+                onChangeText={set('number')}
+                placeholder="9876543210"
+                keyboardType="phone-pad"
+              />
+              <Field
+                label="Police station"
+                icon="business-outline"
+                value={form.police_station}
+                onChangeText={set('police_station')}
+                placeholder="Koramangala PS"
+              />
+
+              {error ? (
+                <View style={styles.errorBox}>
+                  <Ionicons name="alert-circle" size={16} color={colors.risk.critical} />
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : null}
+
+              <Button title="Submit registration" icon="send-outline" onPress={handleRegister} loading={loading} style={{ marginTop: spacing.xs }} />
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </LinearGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  bg: { flex: 1 },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  back: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  backText: {
+    ...type.bodyStrong,
+    color: colors.white,
+  },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+  },
+  cardIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.lg,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  heading: {
+    ...type.h1,
+    color: colors.text,
+  },
+  sub: {
+    ...type.body,
+    color: colors.textMuted,
+    marginBottom: spacing.lg,
+    marginTop: 2,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.risk.critical + '12',
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    ...type.caption,
+    color: colors.risk.critical,
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  successIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.risk.low + '1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  doneTitle: {
+    ...type.h1,
+    color: colors.white,
+    textAlign: 'center',
+  },
+  doneSub: {
+    ...type.body,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginTop: spacing.sm,
+  },
+});
