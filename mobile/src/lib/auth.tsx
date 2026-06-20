@@ -41,6 +41,7 @@ export interface User {
   number: string;
   push_token: string | null;
   is_active: boolean;
+  must_change_password?: boolean;
   created_at: string;
 }
 
@@ -50,6 +51,7 @@ interface AuthState {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<{ request_id: string; status: string }>;
+  changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -107,6 +109,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const changePassword = useCallback(async (newPassword: string, currentPassword?: string) => {
+    await request('/auth/change-password', {
+      method: 'POST',
+      body: { new_password: newPassword, current_password: currentPassword },
+      token,
+    });
+    // Clear the first-login flag locally so guards stop redirecting.
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, must_change_password: false };
+      storage.set(USER_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, [token]);
+
   const logout = useCallback(async () => {
     await Promise.all([
       storage.del(TOKEN_KEY),
@@ -117,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ token, user, loading, login, register, changePassword, logout }}>
       {children}
     </AuthContext.Provider>
   );

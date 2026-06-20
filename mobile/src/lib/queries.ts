@@ -70,6 +70,7 @@ export interface User {
   number: string;
   push_token: string | null;
   is_active: boolean;
+  must_change_password?: boolean;
   created_at: string;
 }
 
@@ -135,16 +136,58 @@ export function useSubmitValidation() {
       assignment_id: string;
       cell_id: string;
       has_congestion: boolean;
-      congestion_severity?: string;
-      dominant_vehicle_type?: string;
-      vehicle_count_approx?: number;
+      congestion_severity: string;
+      dominant_vehicle_type: string;
+      vehicle_count_approx: number;
+      opinion: string;
       notes?: string;
+      latitude: number;
+      longitude: number;
       photo_url: string;
     }) => request('/field-validations', { method: 'POST', body, token }),
     onSuccess: (_data, body) => {
       qc.invalidateQueries({ queryKey: ['assignments'] });
       qc.invalidateQueries({ queryKey: ['assignment', body.assignment_id] });
     },
+  });
+}
+
+export interface Station {
+  id: string;
+  name: string;
+  code: string | null;
+  latitude: number;
+  longitude: number;
+}
+
+export function useStations() {
+  const { token } = useAuth();
+  return useQuery<Station[]>({
+    queryKey: ['stations'],
+    queryFn: () => request<Station[]>('/stations/master', { token }),
+    enabled: !!token,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useUnassignRequest() {
+  const { token } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ assignmentId, reason }: { assignmentId: string; reason: string }) =>
+      request(`/assignments/${assignmentId}/unassign-request`, { method: 'POST', body: { reason }, token }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['assignment', vars.assignmentId] });
+      qc.invalidateQueries({ queryKey: ['assignments'] });
+    },
+  });
+}
+
+export function usePingLocation() {
+  const { token } = useAuth();
+  return useMutation({
+    mutationFn: (body: { latitude: number; longitude: number; assignment_id?: string }) =>
+      request<{ in_range: boolean; distance_m: number | null }>('/location/ping', { method: 'POST', body, token }),
   });
 }
 

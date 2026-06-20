@@ -27,6 +27,8 @@ export async function create(data: z.infer<typeof CreateValidationSchema>, offic
       where: { id: data.assignment_id },
       data: { status: 'completed' },
     });
+    // Free the officer once the report is in.
+    await tx.user.update({ where: { id: officerId }, data: { availability: 'available' } });
     return validation;
   });
 }

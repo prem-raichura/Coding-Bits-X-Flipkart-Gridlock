@@ -26,3 +26,8 @@ export const patch = asyncHandler(async (req: Request, res: Response) => {
   const { action } = PatchAssignmentSchema.parse(req.body);
   res.json(await service.patch(req.params.id, action, req.user!.id, req.user!.role));
 });
+
+export const cancel = asyncHandler(async (req: Request, res: Response) => {
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason : undefined;
+  res.json(await service.cancel(String(req.params.id), reason));
+});

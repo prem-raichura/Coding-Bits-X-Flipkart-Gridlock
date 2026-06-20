@@ -12,3 +12,8 @@ export const LoginSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
 });
+
+export const ChangePasswordSchema = z.object({
+  current_password: z.string().min(1).optional(),
+  new_password: z.string().min(6).max(72),
+});

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +14,7 @@ const FILTERS = ['all', 'active', 'completed'] as const;
 type Filter = (typeof FILTERS)[number];
 
 export default function PatrolScreen() {
+  const router = useRouter();
   const { data, isLoading, refetch, isRefetching } = useAssignments();
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -24,6 +26,12 @@ export default function PatrolScreen() {
     });
     return c;
   }, [data]);
+
+  // Overdue: active assignment past its deadline with no report submitted yet.
+  const overdue = useMemo(
+    () => (data ?? []).find((a) => a.status === 'active' && a.time_limit && new Date(a.time_limit) < new Date() && !a.validation),
+    [data],
+  );
 
   const filtered = useMemo(() => {
     if (filter === 'all') return data ?? [];
@@ -54,6 +62,16 @@ export default function PatrolScreen() {
         }
         ListHeaderComponent={
           <View>
+            {overdue && (
+              <Pressable style={styles.overdue} onPress={() => router.push(`/assignment/${overdue.id}/validate` as never)}>
+                <Ionicons name="alert-circle" size={20} color={colors.white} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.overdueTitle}>Report overdue</Text>
+                  <Text style={styles.overdueSub}>Your patrol time has ended — submit your field report now.</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.white} />
+              </Pressable>
+            )}
             <View style={styles.statsRow}>
               <StatCard icon="navigate-circle" color={colors.status.active} num={counts.active} label="Active" />
               <StatCard icon="checkmark-done-circle" color={colors.status.completed} num={counts.completed} label="Done" />
@@ -122,12 +140,25 @@ const styles = StyleSheet.create({
   },
   headerStatNum: { ...type.h2, color: colors.white },
   headerStatLabel: { ...type.micro, color: colors.accent, fontSize: 9 },
+  overdue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.risk.high,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+  },
+  overdueTitle: { ...type.bodyStrong, color: colors.white },
+  overdueSub: { ...type.caption, color: 'rgba(255,255,255,0.85)' },
   statsRow: {
     flexDirection: 'row',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
   },
+
   statCard: {
     flex: 1,
     flexDirection: 'row',

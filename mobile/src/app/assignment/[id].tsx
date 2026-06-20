@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
@@ -11,7 +11,8 @@ import { PatrolMap, updateUserLocation } from '@/components/PatrolMap';
 import { RiskBadge } from '@/components/RiskBadge';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StatusPill } from '@/components/StatusPill';
-import { useAssignment } from '@/lib/queries';
+import { useAssignment, useUnassignRequest, usePingLocation } from '@/lib/queries';
+import { startGeofence, stopGeofence } from '@/lib/geofence';
 import { colors, radius, shadow, spacing, type } from '@/lib/theme';
 
 export default function AssignmentDetailScreen() {
@@ -21,6 +22,14 @@ export default function AssignmentDetailScreen() {
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const mapRef = useRef<{ postMessage?: (msg: string) => void } | null>(null);
+
+  // Can't-reach request + geofence pings
+  const unassign = useUnassignRequest();
+  const ping = usePingLocation();
+  const [reachOpen, setReachOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const activeRef = useRef(false);
+  const lastPingRef = useRef(0);
 
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
@@ -36,6 +45,11 @@ export default function AssignmentDetailScreen() {
             setUserLat(latitude);
             setUserLng(longitude);
             updateUserLocation(mapRef, latitude, longitude);
+            // Geofence: while on an active task, ping the server at most every 30s.
+            if (activeRef.current && Date.now() - lastPingRef.current > 30_000) {
+              lastPingRef.current = Date.now();
+              ping.mutate({ latitude, longitude, assignment_id: id });
+            }
           }
         );
         if (cancelled) { try { s.remove(); } catch { /* web shim */ } }
@@ -48,7 +62,29 @@ export default function AssignmentDetailScreen() {
       cancelled = true;
       try { sub?.remove(); } catch { /* expo-location web lacks removeSubscription */ }
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Start/stop the background geofence task when the assignment is active.
+  useEffect(() => {
+    activeRef.current = assignment?.status === 'active';
+    if (assignment?.status === 'active') {
+      startGeofence(id);
+    }
+    return () => { stopGeofence(); };
+  }, [assignment?.status, id]);
+
+  async function handleCantReach() {
+    if (!reason.trim()) return;
+    try {
+      await unassign.mutateAsync({ assignmentId: id, reason: reason.trim() });
+      setReachOpen(false);
+      setReason('');
+      Alert.alert('Request sent', 'Admin will review your request to be unassigned.');
+    } catch (e) {
+      Alert.alert('Error', e instanceof Error ? e.message : 'Could not send request');
+    }
+  }
 
   if (isLoading) {
     return (
@@ -164,8 +200,34 @@ export default function AssignmentDetailScreen() {
               style={{ flex: 1.3 }}
             />
           </View>
+          <Pressable onPress={() => setReachOpen(true)} style={styles.cantReach} hitSlop={8}>
+            <Ionicons name="alert-circle-outline" size={15} color={colors.risk.high} />
+            <Text style={styles.cantReachText}>Can&apos;t reach this zone?</Text>
+          </Pressable>
         </View>
       )}
+
+      {/* Can't-reach request modal */}
+      <Modal visible={reachOpen} transparent animationType="fade" onRequestClose={() => setReachOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setReachOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Request to be unassigned</Text>
+            <Text style={styles.modalSub}>Tell the admin why you can&apos;t reach or cover this zone.</Text>
+            <TextInput
+              value={reason}
+              onChangeText={setReason}
+              placeholder="e.g. vehicle breakdown, reassigned elsewhere…"
+              placeholderTextColor={colors.textFaint}
+              multiline
+              style={styles.modalInput}
+            />
+            <View style={styles.modalBtns}>
+              <Button title="Cancel" variant="outline" onPress={() => setReachOpen(false)} style={{ flex: 1 }} />
+              <Button title="Send request" icon="send" onPress={handleCantReach} loading={unassign.isPending} disabled={!reason.trim()} style={{ flex: 1.3 }} />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -293,4 +355,15 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   footerRow: { flexDirection: 'row', gap: spacing.sm },
+  cantReach: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: spacing.sm },
+  cantReachText: { ...type.label, color: colors.risk.high },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: spacing.lg },
+  modalCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm },
+  modalTitle: { ...type.h2, color: colors.text },
+  modalSub: { ...type.body, color: colors.textMuted, marginBottom: spacing.xs },
+  modalInput: {
+    minHeight: 80, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md,
+    padding: spacing.md, color: colors.text, textAlignVertical: 'top', backgroundColor: colors.bg,
+  },
+  modalBtns: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
 });

@@ -16,6 +16,11 @@ import modelFeedbackBatchesRouter from './modules/modelFeedbackBatches/router.js
 import uploadsRouter from './modules/uploads/router.js';
 import csvUploadRouter from './modules/csvUpload/router.js';
 import analyticsRouter from './modules/analytics/router.js';
+import stationsRouter from './modules/stations/router.js';
+import locationRouter from './modules/location/router.js';
+import unassignRequestsRouter from './modules/unassignRequests/router.js';
+import jobsRouter from './modules/jobs/router.js';
+import { startReminderCron } from './jobs/reminders.js';
 
 const app = express();
 
@@ -37,12 +42,17 @@ app.use('/api/field-validations', fieldValidationsRouter);
 app.use('/api/model-feedback-batches', modelFeedbackBatchesRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/csv', csvUploadRouter);
+app.use('/api/stations', stationsRouter);
+app.use('/api/location', locationRouter);
+app.use('/api/unassign-requests', unassignRequestsRouter);
+app.use('/api/jobs', jobsRouter);
 app.use('/api', analyticsRouter);
 
 app.use(errorHandler);
 
 app.listen(env.PORT, () => {
   console.log(`\n🚀 Officer App Server → http://localhost:${env.PORT}/api\n`);
+  startReminderCron();
 });
 
 export default app;

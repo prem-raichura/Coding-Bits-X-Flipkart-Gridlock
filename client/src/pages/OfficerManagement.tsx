@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Award, ChevronLeft, ChevronRight,
   Check, X, Activity, TrendingUp, Info, Eye,
+  MapPin, AlertTriangle, Clock, UserMinus, ShieldAlert,
 } from 'lucide-react'
 import { useOfficers, usePendingOfficers } from '../hooks/useMockData'
 import type { Officer, OfficerStatus, PendingOfficer } from '../types'
@@ -12,6 +13,13 @@ import { Dialog } from '../components/ui/Dialog'
 import { StatCard } from '../components/ui/StatCard'
 import { Skeleton } from '../components/ui/Skeleton'
 import { cn } from '../lib/utils'
+import { request } from '../lib/api'
+import {
+  getUnassignRequests, approveUnassign, rejectUnassign,
+  getGeofenceBreaches, getAssignments, cancelAssignment,
+  type UnassignRequest, type GeofenceBreach,
+} from '../lib/api'
+import { ENDPOINTS, IS_LIVE } from '../config/api'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -45,10 +53,24 @@ const STATUS_CONFIG: Record<OfficerStatus, { dot: string; label: string; badge: 
 const TABS = [
   { id: 'active', label: 'Active Officers' },
   { id: 'pending', label: 'Pending Approvals' },
+  { id: 'assigned', label: 'Assigned' },
+  { id: 'requests', label: 'Unassign Requests' },
+  { id: 'alerts', label: 'Geofence Alerts' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
 const PER_PAGE = 12
+
+// Shape of an assignment row from GET /assignments
+interface AssignmentRow {
+  id: string
+  status: string
+  time_limit: string | null
+  created_at: string
+  user?: { name?: string }
+  user_id: string
+  cell: { h3_index: string; risk_level: string; latitude: number | null; longitude: number | null }
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -76,6 +98,22 @@ function FadeUp({ children, delay = 0, className }: {
       transition={{ duration: 0.5, delay, ease: 'easeOut' }}
       className={className}
     >{children}</motion.div>
+  )
+}
+
+function EmptyState({ icon: Icon, title, sub }: {
+  icon: (props: { size?: number; className?: string }) => ReactNode
+  title: string
+  sub: string
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
+        <Icon size={26} className="text-gray-400" />
+      </div>
+      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{title}</h3>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{sub}</p>
+    </div>
   )
 }
 
@@ -287,7 +325,24 @@ export default function OfficerManagement() {
   const [pendingDetail, setPendingDetail] = useState<PendingOfficer | null>(null)
   const [rejectTarget, setRejectTarget] = useState<PendingOfficer | null>(null)
 
+  // Live lifecycle data (assigned / unassign-requests / geofence alerts)
+  const [assignments, setAssignments] = useState<AssignmentRow[] | null>(null)
+  const [unassignReqs, setUnassignReqs] = useState<UnassignRequest[] | null>(null)
+  const [breaches, setBreaches] = useState<GeofenceBreach[] | null>(null)
+  const [actionBusy, setActionBusy] = useState<string | null>(null)
+
   useEffect(() => { document.title = 'Officer Management — TrafficLens' }, [])
+
+  // Fetch tab-specific live data on demand.
+  useEffect(() => {
+    if (!IS_LIVE) return
+    if (activeTab === 'assigned')
+      getAssignments('active').then((r) => setAssignments(r as AssignmentRow[])).catch(() => setAssignments([]))
+    if (activeTab === 'requests')
+      getUnassignRequests('pending').then(setUnassignReqs).catch(() => setUnassignReqs([]))
+    if (activeTab === 'alerts')
+      getGeofenceBreaches().then(setBreaches).catch(() => setBreaches([]))
+  }, [activeTab])
 
   // ─── Derived ──────────────────────────────────────────────────────────────
 
@@ -321,17 +376,48 @@ export default function OfficerManagement() {
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
-  function handleApprove(o: PendingOfficer) {
+  async function handleApprove(o: PendingOfficer) {
     setPendingList(prev => prev?.filter(p => p.id !== o.id) ?? [])
-    toast.success(`${o.name} approved successfully`)
+    try {
+      if (IS_LIVE) await request(`${ENDPOINTS.approveOfficer}/${o.id}`, { method: 'POST', body: {} })
+      toast.success(`${o.name} approved — login credentials emailed`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Approve failed')
+    }
   }
 
-  function handleRejectConfirm() {
+  async function handleRejectConfirm() {
     if (!rejectTarget) return
-    const name = rejectTarget.name
-    setPendingList(prev => prev?.filter(p => p.id !== rejectTarget.id) ?? [])
+    const { id, name } = rejectTarget
+    setPendingList(prev => prev?.filter(p => p.id !== id) ?? [])
     setRejectTarget(null)
-    toast.error(`${name} application rejected`)
+    try {
+      if (IS_LIVE) await request(`${ENDPOINTS.rejectOfficer}/${id}`, { method: 'POST', body: {} })
+      toast.error(`${name} application rejected`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Reject failed')
+    }
+  }
+
+  async function handleUnassignApprove(id: string) {
+    setActionBusy(id)
+    try { await approveUnassign(id); setUnassignReqs(p => p?.filter(r => r.id !== id) ?? []); toast.success('Unassign approved — officer freed') }
+    catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
+    finally { setActionBusy(null) }
+  }
+
+  async function handleUnassignReject(id: string) {
+    setActionBusy(id)
+    try { await rejectUnassign(id); setUnassignReqs(p => p?.filter(r => r.id !== id) ?? []); toast('Request rejected') }
+    catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
+    finally { setActionBusy(null) }
+  }
+
+  async function handleCancelAssignment(id: string) {
+    setActionBusy(id)
+    try { await cancelAssignment(id); setAssignments(p => p?.filter(a => a.id !== id) ?? []); toast.success('Assignment cancelled') }
+    catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
+    finally { setActionBusy(null) }
   }
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -541,6 +627,116 @@ export default function OfficerManagement() {
             </div>
           )}
 
+          {/* ── TAB 3: Assigned officers ── */}
+          {activeTab === 'assigned' && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {assignments == null ? 'Loading…' : `${assignments.length} active assignment${assignments.length !== 1 ? 's' : ''}`}
+              </p>
+              {assignments == null ? (
+                <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height="h-16" />)}</div>
+              ) : assignments.length === 0 ? (
+                <EmptyState icon={MapPin} title="No active assignments" sub="Assign officers from the Hotspots map." />
+              ) : (
+                <div className="space-y-2">
+                  {assignments.map((a) => (
+                    <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-surface-dark-card">
+                      <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
+                        <MapPin size={15} className="text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{a.user?.name ?? 'Officer'}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">
+                          Zone {a.cell.h3_index} · {a.cell.risk_level}
+                          {a.time_limit && ` · until ${new Date(a.time_limit).toLocaleString()}`}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleCancelAssignment(a.id)}
+                        disabled={actionBusy === a.id}
+                        className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-critical-700 dark:text-critical-400 bg-critical-50 dark:bg-critical-950/30 border border-critical-200 dark:border-critical-800 hover:bg-critical-100 disabled:opacity-50 transition-colors"
+                      >
+                        <UserMinus size={12} /> Unassign
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── TAB 4: Unassign / can't-reach requests ── */}
+          {activeTab === 'requests' && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {unassignReqs == null ? 'Loading…' : `${unassignReqs.length} pending request${unassignReqs.length !== 1 ? 's' : ''}`}
+              </p>
+              {unassignReqs == null ? (
+                <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height="h-20" />)}</div>
+              ) : unassignReqs.length === 0 ? (
+                <EmptyState icon={Check} title="No pending requests" sub="Officers' can't-reach requests appear here." />
+              ) : (
+                <div className="space-y-2">
+                  {unassignReqs.map((r) => (
+                    <div key={r.id} className="p-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-surface-dark-card">
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center flex-shrink-0">
+                          <Clock size={15} className="text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{r.officer.name}</p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Zone {r.assignment.cell.h3_index}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-300 mt-1.5 italic">“{r.reason}”</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={() => handleUnassignApprove(r.id)} disabled={actionBusy === r.id}
+                          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 rounded-xl bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 disabled:opacity-50 transition-colors">
+                          <Check size={12} /> Approve &amp; unassign
+                        </button>
+                        <button onClick={() => handleUnassignReject(r.id)} disabled={actionBusy === r.id}
+                          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 rounded-xl bg-critical-50 dark:bg-critical-950/30 text-critical-700 dark:text-critical-400 border border-critical-200 dark:border-critical-800 hover:bg-critical-100 disabled:opacity-50 transition-colors">
+                          <X size={12} /> Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── TAB 5: Geofence alerts ── */}
+          {activeTab === 'alerts' && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {breaches == null ? 'Loading…' : `${breaches.length} out-of-zone event${breaches.length !== 1 ? 's' : ''}`}
+              </p>
+              {breaches == null ? (
+                <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height="h-16" />)}</div>
+              ) : breaches.length === 0 ? (
+                <EmptyState icon={ShieldAlert} title="No geofence breaches" sub="Officers leaving their zone are flagged here." />
+              ) : (
+                <div className="space-y-2">
+                  {breaches.map((b) => (
+                    <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl border border-critical-200 dark:border-critical-900/50 bg-critical-50/50 dark:bg-critical-950/20">
+                      <div className="w-9 h-9 rounded-full bg-critical-100 dark:bg-critical-900/40 flex items-center justify-center flex-shrink-0">
+                        <AlertTriangle size={15} className="text-critical-600 dark:text-critical-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{b.officer_name}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">
+                          Zone {b.zone ?? '—'} · {b.distance_m != null ? `${b.distance_m} m out` : 'out of range'}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-gray-400 flex-shrink-0">{new Date(b.at).toLocaleTimeString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
         </motion.div>
       </AnimatePresence>
 
@@ -591,7 +787,9 @@ export default function OfficerManagement() {
             <div className="space-y-2 text-sm">
               {[
                 ['Station', profileOfficer.station],
-                ['Last Location', `${profileOfficer.last_lat.toFixed(4)}, ${profileOfficer.last_lon.toFixed(4)}`],
+                ['Last Location', profileOfficer.last_lat != null && profileOfficer.last_lon != null
+                  ? `${profileOfficer.last_lat.toFixed(4)}, ${profileOfficer.last_lon.toFixed(4)}`
+                  : 'No location yet'],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-4">
                   <span className="text-gray-500 dark:text-gray-400 flex-shrink-0">{label}</span>

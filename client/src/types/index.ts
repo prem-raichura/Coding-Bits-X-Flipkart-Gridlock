@@ -23,6 +23,28 @@ export interface Hotspot {
   predicted_48h: number
   z_score: number
   anomaly: string
+  // officer-lifecycle additions (live mode only)
+  h3_id?: string
+  peak_hours?: PeakHours
+  daypart_24h?: DayPart
+  daypart_48h?: DayPart
+  forecast_date_24h?: string
+  forecast_date_48h?: string
+}
+
+export interface PeakHours {
+  start: number
+  end: number
+  peak_hour: number
+  label: string
+  share: number
+}
+
+export interface DayPart {
+  morning: number
+  noon: number
+  evening: number
+  night: number
 }
 
 // ─── Station ─────────────────────────────────────────────────────────────────

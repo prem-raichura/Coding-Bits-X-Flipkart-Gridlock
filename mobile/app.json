@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "BTP Officer",
+    "slug": "btp-officer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "btpofficer",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "in.gov.karnataka.btp.officer",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Your location is used to confirm you are patrolling your assigned zone.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Background location lets command confirm you remain in your assigned zone for the duration of your patrol.",
+        "NSCameraUsageDescription": "The camera is used to capture a GPS-stamped photo for your field report.",
+        "UIBackgroundModes": ["location", "fetch"]
+      }
+    },
+    "android": {
+      "package": "in.gov.karnataka.btp.officer",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "CAMERA"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Background location lets command confirm you remain in your assigned zone during patrol.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ]
+    ]
+  }
+}

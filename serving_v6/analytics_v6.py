@@ -167,10 +167,75 @@ def cell_zscores(df: pd.DataFrame) -> dict:
     return zmap
 
 
+# ── peak-hours / day-parts ──────────────────────────────────────────────────────
+
+def _fmt_hr(h: int) -> str:
+    h = int(h) % 24
+    ap = 'AM' if h < 12 else 'PM'
+    hh = h % 12
+    if hh == 0:
+        hh = 12
+    return f'{hh} {ap}'
+
+
+def _peak_window(hours: pd.Series) -> dict:
+    """Densest contiguous hour band around the modal hour (>=50% of peak count)."""
+    if hours is None or len(hours) == 0:
+        return {'start': 17, 'end': 20, 'peak_hour': 18, 'label': '5 PM–8 PM', 'share': 0.0}
+    counts = hours.value_counts().reindex(range(24), fill_value=0)
+    peak_h = int(counts.idxmax())
+    peak_c = int(counts.max())
+    thr = max(1.0, peak_c * 0.5)
+    start = end = peak_h
+    while start - 1 >= 0 and counts[start - 1] >= thr:
+        start -= 1
+    while end + 1 <= 23 and counts[end + 1] >= thr:
+        end += 1
+    share = float(round(counts.loc[start:end].sum() / max(1, len(hours)), 3))
+    return {
+        'start': int(start),
+        'end': int(end),
+        'peak_hour': peak_h,
+        'label': f'{_fmt_hr(start)}–{_fmt_hr(end + 1)}',
+        'share': share,
+    }
+
+
+def _shares(hours: pd.Series) -> dict:
+    """Fraction of events in morning/noon/evening/night buckets."""
+    b = {'morning': 0, 'noon': 0, 'evening': 0, 'night': 0}
+    for h in hours:
+        h = int(h)
+        if 5 <= h < 11:
+            b['morning'] += 1
+        elif 11 <= h < 16:
+            b['noon'] += 1
+        elif 16 <= h < 21:
+            b['evening'] += 1
+        else:
+            b['night'] += 1
+    tot = sum(b.values()) or 1
+    return {k: v / tot for k, v in b.items()}
+
+
+def _daypart_from_shares(shares: dict, pred: int) -> dict:
+    return {k: int(round(pred * shares.get(k, 0.0))) for k in ('morning', 'noon', 'evening', 'night')}
+
+
+def cell_hour_profiles(df: pd.DataFrame) -> dict:
+    """Per-cell {peak: {...}, shares: {...}} from the raw hour column. Computed once."""
+    prof = {}
+    for cell, sub in df.groupby('cell'):
+        prof[cell] = {'peak': _peak_window(sub['hour']), 'shares': _shares(sub['hour'])}
+    return prof
+
+
 # ── hotspots ──────────────────────────────────────────────────────────────────
 
-def hotspots(df: pd.DataFrame, out: pd.DataFrame) -> list:
+def hotspots(df: pd.DataFrame, out: pd.DataFrame, profiles: dict | None = None) -> list:
     zmap = cell_zscores(df)
+    if profiles is None:
+        profiles = cell_hour_profiles(df)
     approved = (df['validation_status'].str.lower() == 'approved').astype(float)
 
     result = []
@@ -209,8 +274,14 @@ def hotspots(df: pd.DataFrame, out: pd.DataFrame) -> list:
             lat, lon = float(sub['latitude'].mean()) if len(sub) else 0.0, \
                        float(sub['longitude'].mean()) if len(sub) else 0.0
 
+        prof = profiles.get(cell, {'peak': _peak_window(sub['hour'] if len(sub) else pd.Series([], dtype=int)),
+                                   'shares': _shares(sub['hour'] if len(sub) else pd.Series([], dtype=int))})
+        peak = prof['peak']
+        shares = prof['shares']
+
         result.append({
             'id': f'HOT-{i+1:03d}',
+            'h3_id': str(cell),
             'lat': float(round(lat, 6)),
             'lon': float(round(lon, 6)),
             'ticket_count': int(len(sub)),
@@ -224,6 +295,9 @@ def hotspots(df: pd.DataFrame, out: pd.DataFrame) -> list:
             'dominant_junction': dom_junction,
             'approval_rate': cell_app,
             'peak_fraction': peak_fraction,
+            'peak_hours': peak,
+            'daypart_24h': _daypart_from_shares(shares, int(row['pred_24h'])),
+            'daypart_48h': _daypart_from_shares(shares, int(row['pred_48h'])),
             'predicted_24h': int(row['pred_24h']),
             'predicted_48h': int(row['pred_48h']),
             'z_score': float(round(z, 2)),
@@ -430,22 +504,40 @@ def activity(out: pd.DataFrame, summary: dict) -> list:
 
 def build_bundle(clean_df: pd.DataFrame, out: pd.DataFrame,
                  summary: dict, warnings: list) -> dict:
+    # Coerce object/text columns that some months store as all-NaN floats, so the
+    # .str accessors below never blow up on a float64 column.
+    clean_df = clean_df.copy()
+    for col in ('validation_status', 'police_station', 'vehicle_type', 'junction_name'):
+        if col in clean_df.columns:
+            clean_df[col] = clean_df[col].fillna('').astype(str)
+
     viol    = violation_breakdown(clean_df)
     veh     = vehicle_breakdown(clean_df)
     funnel_d = funnel(clean_df)
     ts      = timeseries(clean_df)
     sts     = stations(clean_df)
     offs    = officers(clean_df)
-    hots    = hotspots(clean_df, out)
+    profiles = cell_hour_profiles(clean_df)
+    hots    = hotspots(clean_df, out, profiles)
     psi     = psi_score(clean_df)
     edi     = edi_explanations(clean_df, out, psi)
     dash    = dashboard(clean_df, out, funnel_d, viol, veh, summary)
     act     = activity(out, summary)
 
+    # Enrich each prediction record with its peak-hour band + day-part split so
+    # the map can show day-wise distribution straight from the stored cells.
+    preds = out.to_dict(orient='records')
+    for p in preds:
+        prof = profiles.get(p.get('h3_id'))
+        if prof:
+            p['peak_hours'] = prof['peak']
+            p['daypart_24h'] = _daypart_from_shares(prof['shares'], int(p.get('pred_24h', 0) or 0))
+            p['daypart_48h'] = _daypart_from_shares(prof['shares'], int(p.get('pred_48h', 0) or 0))
+
     return {
         'summary': summary,
         'warnings': warnings,
-        'predictions': out.to_dict(orient='records'),
+        'predictions': preds,
         'hotspots': hots,
         'stations': sts,
         'officers': offs,

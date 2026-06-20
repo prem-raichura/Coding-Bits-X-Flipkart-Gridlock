@@ -27,6 +27,12 @@ export const ENDPOINTS = {
   assignOfficer:   '/officers/assign',
   approveOfficer:  '/officers/approve',
   rejectOfficer:   '/officers/reject',
+  // officer-lifecycle additions
+  stationsMaster:  '/stations/master',
+  nearestStations: '/stations/nearest',
+  unassignRequests:'/unassign-requests',
+  geofenceBreaches:'/location/breaches',
+  assignments:     '/assignments',
 }
 
 export const IS_LIVE = BASE_URL.length > 0

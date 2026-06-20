@@ -22,6 +22,28 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
   return transporter;
 }
 
+export async function sendEmail(to: string, subject: string, text: string) {
+  const t = await getTransporter();
+  const info = await t.sendMail({
+    from:
+      env.EMAIL_MODE === 'smtp'
+        ? env.SMTP_FROM
+        : '"Officer App" <noreply@officerapp.local>',
+    to,
+    subject,
+    text,
+  });
+
+  if (env.EMAIL_MODE === 'stub') {
+    console.log(`\n[EMAIL STUB] ─────────────────────────────`);
+    console.log(`  To:      ${to}`);
+    console.log(`  Subject: ${subject}`);
+    console.log(`  Body:    ${text.replace(/\n/g, ' / ')}`);
+    console.log(`  Preview: ${nodemailer.getTestMessageUrl(info)}`);
+    console.log(`───────────────────────────────────────────\n`);
+  }
+}
+
 export async function sendCredentials(to: string, username: string, password: string) {
   const t = await getTransporter();
   const info = await t.sendMail({

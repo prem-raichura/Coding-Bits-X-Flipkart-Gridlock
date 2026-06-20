@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { useAuth } from '@/lib/auth';
+import { request } from '@/lib/api';
+import type { Station } from '@/lib/queries';
 import { colors, gradients, radius, spacing, type } from '@/lib/theme';
 
 export default function RegisterScreen() {
@@ -24,6 +26,19 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+
+  // Station picker (public list, fetched pre-auth)
+  const [stations, setStations] = useState<Station[]>([]);
+  const [stationQuery, setStationQuery] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  useEffect(() => {
+    request<Station[]>('/stations/master').then(setStations).catch(() => setStations([]));
+  }, []);
+  const stationMatches = useMemo(() => {
+    const q = stationQuery.trim().toLowerCase();
+    const list = q ? stations.filter((s) => s.name.toLowerCase().includes(q)) : stations;
+    return list.slice(0, 8);
+  }, [stations, stationQuery]);
 
   function set(key: keyof typeof form) {
     return (val: string) => setForm((f) => ({ ...f, [key]: val }));
@@ -104,13 +119,35 @@ export default function RegisterScreen() {
                 placeholder="9876543210"
                 keyboardType="phone-pad"
               />
+              {/* Searchable police-station picker */}
               <Field
                 label="Police station"
                 icon="business-outline"
-                value={form.police_station}
-                onChangeText={set('police_station')}
-                placeholder="Koramangala PS"
+                value={pickerOpen ? stationQuery : form.police_station}
+                onChangeText={(v) => { setStationQuery(v); setPickerOpen(true); setForm((f) => ({ ...f, police_station: '' })); }}
+                onFocus={() => setPickerOpen(true)}
+                placeholder="Search your station…"
               />
+              {pickerOpen && stationMatches.length > 0 && (
+                <View style={styles.dropdown}>
+                  {stationMatches.map((s) => (
+                    <Pressable
+                      key={s.id}
+                      onPress={() => { setForm((f) => ({ ...f, police_station: s.name })); setStationQuery(''); setPickerOpen(false); }}
+                      style={styles.dropdownItem}
+                    >
+                      <Ionicons name="location-outline" size={15} color={colors.accent} />
+                      <Text style={styles.dropdownText} numberOfLines={1}>{s.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+              {form.police_station ? (
+                <View style={styles.selectedChip}>
+                  <Ionicons name="checkmark-circle" size={14} color={colors.risk.low} />
+                  <Text style={styles.selectedText}>{form.police_station}</Text>
+                </View>
+              ) : null}
 
               {error ? (
                 <View style={styles.errorBox}>
@@ -168,6 +205,32 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     marginTop: 2,
   },
+  dropdown: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  dropdownText: { ...type.body, color: colors.text, flex: 1 },
+  selectedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.sm,
+  },
+  selectedText: { ...type.caption, color: colors.risk.low, fontWeight: '700' },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',

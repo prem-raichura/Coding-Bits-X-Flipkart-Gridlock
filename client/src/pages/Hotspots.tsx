@@ -5,17 +5,18 @@ import { MapContainer, TileLayer, Polygon, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { latLngToCell, cellToBoundary } from 'h3-js'
 import {
-  X, Users, ZoomIn, ZoomOut, RotateCcw, Layers,
+  X, Users, ZoomIn, ZoomOut, RotateCcw,
   ChevronRight, Activity, TrendingUp,
-  CheckCircle, MapPin, Filter,
+  CheckCircle, MapPin, Filter, Clock, Building2, ChevronLeft, Loader2, CalendarDays,
 } from 'lucide-react'
-import { useHotspots, useEDIExplanations, useOfficers } from '../hooks/useMockData'
+import { useHotspots, useEDIExplanations } from '../hooks/useMockData'
 import { Skeleton } from '../components/ui/Skeleton'
 import { RiskBadge } from '../components/ui/RiskBadge'
-import { Badge } from '../components/ui/Badge'
 import { Dialog } from '../components/ui/Dialog'
-import { cn, formatNumber, formatPercent, haversineKm, getRiskBg } from '../lib/utils'
-import type { Hotspot, Officer, RiskLevel, EDIExplanation } from '../types'
+import { cn, formatNumber, getRiskBg } from '../lib/utils'
+import { getNearestStations, getStationOfficers, assignOfficer } from '../lib/api'
+import type { NearestStation, StationOfficer } from '../lib/api'
+import type { Hotspot, RiskLevel, EDIExplanation, DayPart } from '../types'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -35,7 +36,9 @@ const RISK_FILTERS: Array<'All' | RiskLevel> = ['All', 'Critical', 'High', 'Medi
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface HexDatum { hotspot: Hotspot; boundary: [number, number][]; cell: string }
-interface OfficerWithDist extends Officer { distance_km: number; eta_min: number }
+
+// Day-wise forecast view: next-day (24h) vs day-after (48h)
+type DayView = 24 | 48
 
 // ─── H3 hex builder — dedup by cell, keep highest hotspot_score ───────────────
 
@@ -159,12 +162,14 @@ function MapLayer({ hexData, selected, onSelect, pulseTick }: {
 // ─── Map overlay controls ────────────────────────────────────────────────────
 
 function MapControls({
-  mapRef, visibleCount, totalCount, totalPred24h, avgCongestion,
+  mapRef, visibleCount, totalCount, totalPred, dayView, forecastDate, avgCongestion,
 }: {
   mapRef:        React.MutableRefObject<L.Map | null>
   visibleCount:  number
   totalCount:    number
-  totalPred24h:  number
+  totalPred:     number
+  dayView:       DayView
+  forecastDate?: string
   avgCongestion: number
 }) {
   return (
@@ -173,7 +178,7 @@ function MapControls({
       <div className="absolute top-3 left-3 right-3 z-[900] flex flex-wrap gap-2 pointer-events-none">
         {[
           { icon: MapPin,     color: '#06b6d4', label: `${visibleCount} / ${totalCount} hotspots`     },
-          { icon: TrendingUp, color: '#ef4444', label: `${totalPred24h} violations predicted (24 h)` },
+          { icon: TrendingUp, color: '#ef4444', label: `${totalPred} predicted · Day ${dayView === 24 ? '1' : '2'}${forecastDate ? ` (${forecastDate})` : ''}` },
           { icon: Activity,   color: '#f97316', label: `Avg congestion ${avgCongestion.toFixed(1)}`   },
         ].map(({ icon: Icon, color, label }) => (
           <div
@@ -337,12 +342,23 @@ function ShapBar({ feature, shap, impact }: { feature: string; shap: number; imp
 
 // ─── Hotspot detail panel ─────────────────────────────────────────────────────
 
-function HotspotDetail({ hotspot, edi, onClose, onAssign }: {
+const DAYPART_META: Array<{ key: keyof DayPart; label: string; color: string }> = [
+  { key: 'morning', label: 'Morning', color: '#f59e0b' },
+  { key: 'noon',    label: 'Noon',    color: '#06b6d4' },
+  { key: 'evening', label: 'Evening', color: '#f97316' },
+  { key: 'night',   label: 'Night',   color: '#6366f1' },
+]
+
+function HotspotDetail({ hotspot, edi, dayView, onClose, onAssign }: {
   hotspot:  Hotspot
   edi?:     EDIExplanation
+  dayView:  DayView
   onClose:  () => void
   onAssign: () => void
 }) {
+  const daypart = dayView === 24 ? hotspot.daypart_24h : hotspot.daypart_48h
+  const forecastDate = dayView === 24 ? hotspot.forecast_date_24h : hotspot.forecast_date_48h
+  const maxPart = daypart ? Math.max(1, ...DAYPART_META.map((m) => daypart[m.key])) : 1
   return (
     <div className="flex flex-col h-full min-h-0">
 
@@ -395,21 +411,23 @@ function HotspotDetail({ hotspot, edi, onClose, onAssign }: {
           ))}
         </div>
 
-        {/* Predictions: pred_24h, pred_48h */}
+        {/* Predictions: pred_24h, pred_48h — selected day highlighted */}
         <div>
           <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">
             Violation Forecast
           </p>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: 'Next 24 h', value: hotspot.predicted_24h, color: '#f97316' },
-              { label: 'Next 48 h', value: hotspot.predicted_48h, color: '#ef4444' },
-            ].map(({ label, value, color }) => (
+              { label: 'Next 24 h (Day 1)', value: hotspot.predicted_24h, color: '#f97316', date: hotspot.forecast_date_24h, on: dayView === 24 },
+              { label: 'Next 48 h (Day 2)', value: hotspot.predicted_48h, color: '#ef4444', date: hotspot.forecast_date_48h, on: dayView === 48 },
+            ].map(({ label, value, color, date, on }) => (
               <div key={label}
-                className="rounded-xl border border-gray-100 dark:border-gray-700/70 p-3
-                           bg-gray-50/60 dark:bg-gray-900/30 text-center">
+                className={cn('rounded-xl border p-3 text-center transition-shadow',
+                  on ? 'border-transparent ring-2 shadow-md' : 'border-gray-100 dark:border-gray-700/70 bg-gray-50/60 dark:bg-gray-900/30')}
+                style={on ? { boxShadow: `0 0 0 2px ${color}33`, background: `${color}0d` } : undefined}>
                 <p className="text-2xl font-black tabular-nums" style={{ color }}>{value}</p>
                 <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
+                {date && <p className="text-[9px] text-gray-400 font-mono mt-0.5">{date}</p>}
                 <div className="mt-2 h-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
@@ -423,6 +441,73 @@ function HotspotDetail({ hotspot, edi, onClose, onAssign }: {
             ))}
           </div>
         </div>
+
+        {/* Peak hours + day-part split for the selected day */}
+        {(hotspot.peak_hours || daypart) && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                Peak Hours · Day {dayView === 24 ? '1' : '2'}
+              </p>
+              {forecastDate && (
+                <span className="text-[9px] font-mono text-gray-400 flex items-center gap-1">
+                  <CalendarDays size={10} /> {forecastDate}
+                </span>
+              )}
+            </div>
+            {hotspot.peak_hours && (
+              <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-orange-50 dark:bg-orange-950/20
+                              border border-orange-100 dark:border-orange-900/40">
+                <Clock size={14} className="text-orange-500 flex-shrink-0" />
+                <span className="text-sm font-bold text-orange-700 dark:text-orange-300">{hotspot.peak_hours.label}</span>
+                <span className="text-[10px] text-orange-500/70 ml-auto">
+                  {Math.round(hotspot.peak_hours.share * 100)}% of activity
+                </span>
+              </div>
+            )}
+            {daypart && (
+              <div className="space-y-1.5">
+                {DAYPART_META.map(({ key, label, color }) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 w-14">{label}</span>
+                    <div className="flex-1 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(daypart[key] / maxPart) * 100}%` }}
+                        transition={{ duration: 0.5 }}
+                        className="h-full rounded-full"
+                        style={{ background: color }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold tabular-nums text-gray-600 dark:text-gray-300 w-6 text-right">
+                      {daypart[key]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Explainability: anomaly z-score + top SHAP-like drivers */}
+        {edi && (
+          <div>
+            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">
+              Model Explainability
+            </p>
+            <div className="mb-2.5">
+              <p className="text-[10px] text-gray-400 mb-1">Anomaly (z-score vs normal)</p>
+              <ZGauge z={hotspot.z_score} />
+            </div>
+            {edi.shap_drivers?.length > 0 && (
+              <div className="space-y-2">
+                {edi.shap_drivers.slice(0, 4).map((d) => (
+                  <ShapBar key={d.feature} feature={d.feature} shap={d.shap} impact={d.impact} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Patterns: dominant_violation, dominant_vehicle */}
         <div>
@@ -460,189 +545,197 @@ function HotspotDetail({ hotspot, edi, onClose, onAssign }: {
   )
 }
 
-// ─── Officer card (in assign dialog) ─────────────────────────────────────────
+// ─── Station officer row (in assign dialog) ──────────────────────────────────
 
-function OfficerCard({ officer, onAssign }: {
-  officer:  OfficerWithDist
+function StationOfficerRow({ officer, assigned, busy, onAssign }: {
+  officer:  StationOfficer
+  assigned: boolean
+  busy:     boolean
   onAssign: (id: string) => void
 }) {
-  const initials = officer.name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-
+  const initials = officer.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+  const free = officer.status === 'available'
   return (
-    <div className="flex items-center gap-3 py-3.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
-      <div
-        className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black text-white"
-        style={{ background: 'linear-gradient(135deg, #1e3a8a, #06b6d4)' }}
-      >
+    <div className="flex items-center gap-3 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+      <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-black text-white"
+        style={{ background: 'linear-gradient(135deg, #1e3a8a, #06b6d4)' }}>
         {initials}
       </div>
-
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-            {officer.name}
-          </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{officer.name}</span>
           <span className="text-[10px] font-mono text-gray-400 flex-shrink-0">{officer.badge_id}</span>
         </div>
-        <div className="flex items-center gap-3 mb-1.5">
-          <span className="text-[10px] text-gray-500 dark:text-gray-400">{officer.station}</span>
-          <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">
-            {officer.distance_km.toFixed(1)} km · ETA {officer.eta_min} min
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
+            free ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/40'
+                 : 'text-gray-500 bg-gray-100 dark:bg-gray-800')}>
+            {officer.status}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${officer.effectiveness_score}%`,
-                background: officer.effectiveness_score > 60 ? '#22c55e' : '#f97316',
-              }}
-            />
-          </div>
-          <span className="text-[10px] text-gray-400 w-16 text-right tabular-nums">
-            {officer.effectiveness_score.toFixed(0)}% eff.
-          </span>
+          <span className="text-[10px] text-gray-400">{officer.total_tickets} reports</span>
         </div>
       </div>
-
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+      <button
+        disabled={assigned || busy || !free}
         onClick={() => onAssign(officer.id)}
-        className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold
-                   text-emerald-700 dark:text-emerald-400
-                   bg-emerald-50 dark:bg-emerald-950/30
-                   border border-emerald-200 dark:border-emerald-800
-                   hover:bg-emerald-100 dark:hover:bg-emerald-900/30
-                   transition-colors duration-150"
+        className={cn('flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-150',
+          assigned
+            ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 cursor-default'
+            : !free
+              ? 'text-gray-400 bg-gray-100 dark:bg-gray-800 cursor-not-allowed'
+              : 'text-white bg-gradient-to-r from-blue-700 to-cyan-600 hover:opacity-90')}
       >
-        Assign
-      </motion.button>
+        {assigned ? 'Assigned ✓' : busy ? <Loader2 size={13} className="animate-spin" /> : 'Assign'}
+      </button>
     </div>
   )
 }
 
-// ─── Assign officers dialog ───────────────────────────────────────────────────
+// ─── Assign officers dialog: nearest stations → available officers → assign ───
 
-function AssignDialog({ open, hotspot, officers, onClose, onToast }: {
+const HOUR_OPTIONS = [4, 8, 12, 24]
+
+function AssignDialog({ open, hotspot, onClose, onToast }: {
   open:     boolean
   hotspot:  Hotspot | null
-  officers: Officer[]
   onClose:  () => void
   onToast:  (msg: string) => void
 }) {
-  const [count,       setCount]       = useState(3)
+  const [stations,    setStations]    = useState<NearestStation[]>([])
+  const [loadingSt,   setLoadingSt]   = useState(false)
+  const [stationErr,  setStationErr]  = useState<string | null>(null)
+  const [activeSt,    setActiveSt]    = useState<NearestStation | null>(null)
+  const [officers,    setOfficers]    = useState<StationOfficer[]>([])
+  const [loadingOff,  setLoadingOff]  = useState(false)
+  const [hours,       setHours]       = useState(8)
   const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set())
+  const [busyId,      setBusyId]      = useState<string | null>(null)
 
+  // Load the 2 nearest stations whenever the dialog opens for a hotspot.
   useEffect(() => {
-    if (open) setAssignedIds(new Set())
+    if (!open || !hotspot) return
+    setAssignedIds(new Set()); setActiveSt(null); setOfficers([]); setStationErr(null)
+    setLoadingSt(true)
+    getNearestStations(hotspot.lat, hotspot.lon, 2)
+      .then((s) => { setStations(s); if (s[0]) setActiveSt(s[0]) })
+      .catch((e) => setStationErr(e instanceof Error ? e.message : 'Failed to load stations'))
+      .finally(() => setLoadingSt(false))
   }, [open, hotspot])
 
-  const candidates = useMemo((): OfficerWithDist[] => {
-    if (!hotspot) return []
-    return officers
-      .filter((o) =>
-        (o.status === 'available' || o.status === 'active') &&
-        !assignedIds.has(o.id),
-      )
-      .map((o) => {
-        const distance_km = haversineKm(hotspot.lat, hotspot.lon, o.last_lat, o.last_lon)
-        return { ...o, distance_km, eta_min: Math.round((distance_km / 30) * 60) }
-      })
-      .sort((a, b) =>
-        (a.distance_km * 1.2 - a.effectiveness_score * 0.04) -
-        (b.distance_km * 1.2 - b.effectiveness_score * 0.04),
-      )
-      .slice(0, count)
-  }, [hotspot, officers, count, assignedIds])
+  // Load available officers for the selected station.
+  useEffect(() => {
+    if (!activeSt) return
+    setLoadingOff(true)
+    getStationOfficers(activeSt.id, 'available')
+      .then(setOfficers)
+      .catch(() => setOfficers([]))
+      .finally(() => setLoadingOff(false))
+  }, [activeSt])
 
-  const handleAssign = useCallback((id: string) => {
-    setAssignedIds((prev) => new Set([...prev, id]))
-    onToast('Officer assigned to zone')
-  }, [onToast])
-
-  const handleConfirm = useCallback(() => {
-    onToast(`${assignedIds.size} officer${assignedIds.size !== 1 ? 's' : ''} deployed to ${hotspot?.dominant_junction ?? 'zone'}`)
-    onClose()
-  }, [assignedIds.size, hotspot, onClose, onToast])
+  const handleAssign = useCallback(async (officerId: string) => {
+    if (!hotspot) return
+    const h3 = hotspot.h3_id ?? latLngToCell(hotspot.lat, hotspot.lon, 9)
+    const time_limit = new Date(Date.now() + hours * 3600_000).toISOString()
+    setBusyId(officerId)
+    try {
+      await assignOfficer({ user_id: officerId, h3_index: h3, time_limit })
+      setAssignedIds((prev) => new Set([...prev, officerId]))
+      onToast('Officer deployed — notified on their app')
+    } catch (e) {
+      onToast(e instanceof Error ? e.message : 'Assignment failed')
+    } finally {
+      setBusyId(null)
+    }
+  }, [hotspot, hours, onToast])
 
   if (!hotspot) return null
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      width="max-w-xl"
-      title={`Assign Officers — ${hotspot.dominant_junction.slice(0, 44)}${hotspot.dominant_junction.length > 44 ? '…' : ''}`}
-    >
-      {/* Officer count picker */}
+    <Dialog open={open} onClose={onClose} width="max-w-2xl"
+      title={`Assign Officers — ${hotspot.dominant_junction.slice(0, 40)}${hotspot.dominant_junction.length > 40 ? '…' : ''}`}>
+
+      {/* Patrol duration picker */}
       <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/60
                       border border-gray-100 dark:border-gray-800">
-        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex-1">
-          Officers to deploy
-        </label>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCount((c) => Math.max(1, c - 1))}
-            className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm
-                       bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600
-                       text-gray-700 dark:text-gray-300 transition-colors"
-          >
-            −
-          </button>
-          <span className="w-8 text-center text-sm font-black text-gray-900 dark:text-gray-100">
-            {count}
-          </span>
-          <button
-            onClick={() => setCount((c) => Math.min(10, c + 1))}
-            className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm
-                       bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600
-                       text-gray-700 dark:text-gray-300 transition-colors"
-          >
-            +
-          </button>
+        <Clock size={14} className="text-gray-400" />
+        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex-1">Patrol duration</label>
+        <div className="flex items-center gap-1">
+          {HOUR_OPTIONS.map((h) => (
+            <button key={h} onClick={() => setHours(h)}
+              className={cn('px-2.5 py-1 rounded-lg text-xs font-bold transition-colors',
+                hours === h ? 'text-white bg-gradient-to-r from-blue-700 to-cyan-600'
+                            : 'text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600')}>
+              {h}h
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Officer list */}
-      <div className="max-h-72 overflow-y-auto rounded-xl border border-gray-100 dark:border-gray-800
-                      bg-white dark:bg-gray-950 px-1">
-        {candidates.length === 0 ? (
-          <div className="py-10 text-center text-sm text-gray-400">
-            All available officers have been assigned.
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Left: 2 nearest stations */}
+        <div>
+          <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">
+            Nearest Stations
+          </p>
+          {loadingSt ? (
+            <div className="py-8 text-center text-sm text-gray-400"><Loader2 size={16} className="animate-spin inline" /></div>
+          ) : stationErr ? (
+            <div className="py-6 text-center text-xs text-critical-500">{stationErr}</div>
+          ) : stations.length === 0 ? (
+            <div className="py-6 text-center text-xs text-gray-400">No stations seeded yet.</div>
+          ) : (
+            <div className="space-y-2">
+              {stations.map((s) => (
+                <button key={s.id} onClick={() => setActiveSt(s)}
+                  className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-colors',
+                    activeSt?.id === s.id
+                      ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/30'
+                      : 'border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50')}>
+                  <Building2 size={15} className="text-blue-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{s.name}</p>
+                    <p className="text-[10px] text-gray-400">{s.distance_km} km away</p>
+                  </div>
+                  <ChevronRight size={13} className="text-gray-300 dark:text-gray-600" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Right: available officers at selected station */}
+        <div>
+          <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+            {activeSt && <ChevronLeft size={11} className="sm:hidden" />}
+            Available Officers{activeSt ? ` · ${activeSt.name}` : ''}
+          </p>
+          <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 min-h-[140px] max-h-72 overflow-y-auto">
+            {!activeSt ? (
+              <div className="py-12 text-center text-xs text-gray-400">Select a station</div>
+            ) : loadingOff ? (
+              <div className="py-12 text-center text-gray-400"><Loader2 size={16} className="animate-spin inline" /></div>
+            ) : officers.length === 0 ? (
+              <div className="py-12 text-center text-xs text-gray-400">No available officers at this station.</div>
+            ) : (
+              officers.map((o) => (
+                <StationOfficerRow key={o.id} officer={o}
+                  assigned={assignedIds.has(o.id)} busy={busyId === o.id} onAssign={handleAssign} />
+              ))
+            )}
           </div>
-        ) : (
-          candidates.map((o) => (
-            <OfficerCard key={o.id} officer={o} onAssign={handleAssign} />
-          ))
-        )}
+        </div>
       </div>
 
       {/* Footer */}
-      <div className="flex gap-3 mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
-        <button
-          onClick={onClose}
-          className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
-                     text-sm font-semibold text-gray-600 dark:text-gray-400
-                     hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
-        >
-          Cancel
+      <div className="flex items-center gap-3 mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
+        <span className="text-xs text-gray-500 dark:text-gray-400 flex-1">
+          {assignedIds.size > 0 ? `${assignedIds.size} officer${assignedIds.size !== 1 ? 's' : ''} deployed to this zone` : 'Pick an officer to deploy'}
+        </span>
+        <button onClick={onClose}
+          className="px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-md"
+          style={{ background: 'linear-gradient(135deg, #1e3a8a, #06b6d4)' }}>
+          Done
         </button>
-        <motion.button
-          onClick={handleConfirm}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white shadow-md"
-          style={{ background: 'linear-gradient(135deg, #1e3a8a, #06b6d4)' }}
-        >
-          Assign Officer
-        </motion.button>
       </div>
     </Dialog>
   )
@@ -650,10 +743,11 @@ function AssignDialog({ open, hotspot, officers, onClose, onToast }: {
 
 // ─── Side panel (list ↔ detail) ───────────────────────────────────────────────
 
-function SidePanel({ hotspots, selected, edis, onSelect, onClose, onAssign, filter }: {
+function SidePanel({ hotspots, selected, edis, dayView, onSelect, onClose, onAssign, filter }: {
   hotspots: Hotspot[]
   selected: Hotspot | null
   edis:     EDIExplanation[]
+  dayView:  DayView
   onSelect: (h: Hotspot) => void
   onClose:  () => void
   onAssign: () => void
@@ -674,7 +768,7 @@ function SidePanel({ hotspots, selected, edis, onSelect, onClose, onAssign, filt
             transition={{ duration: 0.18 }}
             className="flex flex-col h-full min-h-0"
           >
-            <HotspotDetail hotspot={selected} edi={edi} onClose={onClose} onAssign={onAssign} />
+            <HotspotDetail hotspot={selected} edi={edi} dayView={dayView} onClose={onClose} onAssign={onAssign} />
           </motion.div>
         ) : (
           <motion.div
@@ -730,9 +824,9 @@ export default function Hotspots() {
 
   const { data: hotspots, loading: hotLoad } = useHotspots()
   const { data: edis,     loading: ediLoad } = useEDIExplanations()
-  const { data: officers }                   = useOfficers()
 
   const [filter,     setFilter]     = useState<'All' | RiskLevel>('All')
+  const [dayView,    setDayView]    = useState<DayView>(24)
   const [selected,   setSelected]   = useState<Hotspot | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [toast,      setToast]      = useState<string | null>(null)
@@ -773,7 +867,14 @@ export default function Hotspots() {
     [hotspots, filter],
   )
   const hexData       = useMemo(() => buildHexData(filtered), [filtered])
-  const totalPred24h  = useMemo(() => filtered.reduce((s, h) => s + h.predicted_24h, 0), [filtered])
+  const totalPred     = useMemo(
+    () => filtered.reduce((s, h) => s + (dayView === 24 ? h.predicted_24h : h.predicted_48h), 0),
+    [filtered, dayView],
+  )
+  const forecastDate  = useMemo(
+    () => (dayView === 24 ? filtered[0]?.forecast_date_24h : filtered[0]?.forecast_date_48h),
+    [filtered, dayView],
+  )
   const avgCongestion = useMemo(
     () => filtered.length ? filtered.reduce((s, h) => s + h.congestion_score, 0) / filtered.length : 0,
     [filtered],
@@ -815,8 +916,25 @@ export default function Hotspots() {
           </p>
         </div>
 
-        {/* Filter pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Day toggle + filter pills */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Day-wise forecast toggle */}
+          <div className="flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-800 p-0.5">
+            {([24, 48] as DayView[]).map((d) => (
+              <button
+                key={d}
+                onClick={() => setDayView(d)}
+                className={cn(
+                  'px-2.5 py-1.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1',
+                  dayView === d
+                    ? 'bg-white dark:bg-gray-950 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400',
+                )}
+              >
+                <CalendarDays size={11} /> Day {d === 24 ? '1' : '2'}
+              </button>
+            ))}
+          </div>
           <Filter size={12} className="text-gray-400 flex-shrink-0" />
           {RISK_FILTERS.map((f) => {
             const active = filter === f
@@ -882,7 +1000,9 @@ export default function Hotspots() {
               mapRef={mapRef}
               visibleCount={filtered.length}
               totalCount={hotspots?.length ?? 0}
-              totalPred24h={totalPred24h}
+              totalPred={totalPred}
+              dayView={dayView}
+              forecastDate={forecastDate}
               avgCongestion={avgCongestion}
             />
           </div>
@@ -899,6 +1019,7 @@ export default function Hotspots() {
                 hotspots={hotspots}
                 selected={selected}
                 edis={edis}
+                dayView={dayView}
                 onSelect={handleSelect}
                 onClose={handleClose}
                 onAssign={() => setDialogOpen(true)}
@@ -917,7 +1038,6 @@ export default function Hotspots() {
       <AssignDialog
         open={dialogOpen}
         hotspot={selected}
-        officers={officers ?? []}
         onClose={() => setDialogOpen(false)}
         onToast={handleToast}
       />

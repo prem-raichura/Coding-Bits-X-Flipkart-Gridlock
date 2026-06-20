@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma.js';
-import { comparePassword } from '../../utils/password.js';
+import { comparePassword, hashPassword } from '../../utils/password.js';
 import { signToken } from '../../utils/jwt.js';
 import { AppError } from '../../middleware/error.js';
 import type { z } from 'zod';
@@ -37,9 +37,30 @@ export async function getMe(id: string) {
       number: true,
       push_token: true,
       is_active: true,
+      must_change_password: true,
+      availability: true,
       created_at: true,
     },
   });
   if (!user) throw new AppError(404, 'User not found');
   return user;
+}
+
+export async function changePassword(userId: string, newPassword: string, currentPassword?: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new AppError(404, 'User not found');
+
+  // First-login forced change skips current-password check; otherwise verify it.
+  if (!user.must_change_password) {
+    if (!currentPassword) throw new AppError(400, 'Current password required');
+    const valid = await comparePassword(currentPassword, user.password);
+    if (!valid) throw new AppError(401, 'Current password is incorrect');
+  }
+
+  const hashed = await hashPassword(newPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashed, must_change_password: false },
+  });
+  return { ok: true };
 }

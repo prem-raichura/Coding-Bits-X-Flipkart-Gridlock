@@ -56,6 +56,7 @@ export default function ValidateScreen() {
   const [severity, setSeverity] = useState<Severity>('none');
   const [vehicleType, setVehicleType] = useState('');
   const [count, setCount] = useState('');
+  const [opinion, setOpinion] = useState('');
   const [notes, setNotes] = useState('');
 
   // Camera state
@@ -144,23 +145,41 @@ export default function ValidateScreen() {
     }
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!assignment) return;
-    if (!photoUrl) {
-      Alert.alert('Photo required', 'Capture a GPS photo before submitting.');
-      return;
-    }
-    const body: Parameters<typeof submit.mutate>[0] = {
+    // All fields are compulsory — this report feeds monthly model retraining.
+    if (!photoUrl) return Alert.alert('Photo required', 'Capture a GPS photo before submitting.');
+    if (hasCongestion && severity === 'none') return Alert.alert('Severity required', 'Select a congestion severity.');
+    if (!vehicleType.trim()) return Alert.alert('Vehicle type required', 'Enter the dominant vehicle type.');
+    const countNum = parseInt(count, 10);
+    if (!count.trim() || isNaN(countNum)) return Alert.alert('Count required', 'Enter an approximate vehicle count.');
+    if (!opinion.trim()) return Alert.alert('Opinion required', 'Add your assessment of the zone.');
+
+    // Capture current coordinates (fall back to the GPS-photo stamp).
+    let latitude = stampInfo?.lat ?? 0;
+    let longitude = stampInfo?.lng ?? 0;
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        latitude = loc.coords.latitude;
+        longitude = loc.coords.longitude;
+      }
+    } catch { /* keep stamp coords */ }
+
+    submit.mutate({
       assignment_id: assignment.id,
       cell_id: assignment.cell_id,
       has_congestion: hasCongestion,
+      congestion_severity: hasCongestion ? severity : 'none',
+      dominant_vehicle_type: vehicleType.trim(),
+      vehicle_count_approx: countNum,
+      opinion: opinion.trim(),
+      latitude,
+      longitude,
       photo_url: photoUrl,
-      ...(hasCongestion && severity !== 'none' ? { congestion_severity: severity } : {}),
-      ...(vehicleType.trim() ? { dominant_vehicle_type: vehicleType.trim() } : {}),
-      ...(count.trim() && !isNaN(parseInt(count)) ? { vehicle_count_approx: parseInt(count) } : {}),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
-    };
-    submit.mutate(body, {
+    }, {
       onSuccess: () => {
         Alert.alert('Report submitted', 'Field report saved. Assignment marked completed.', [
           { text: 'Done', onPress: () => router.replace('/(tabs)') },
@@ -235,15 +254,29 @@ export default function ValidateScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Traffic details</Text>
+            <Text style={styles.cardTitle}>Traffic details <Text style={styles.required}>*</Text></Text>
             <Field label="Dominant vehicle type" icon="bus-outline" value={vehicleType} onChangeText={setVehicleType} placeholder="e.g. two-wheeler, auto, bus" />
             <Field label="Approximate vehicle count" icon="calculator-outline" value={count} onChangeText={setCount} placeholder="e.g. 120" keyboardType="number-pad" />
           </View>
 
           <View style={styles.card}>
+            <Text style={styles.cardTitle}>Your assessment <Text style={styles.required}>*</Text></Text>
+            <Field
+              label="Officer opinion"
+              icon="chatbox-ellipses-outline"
+              value={opinion}
+              onChangeText={setOpinion}
+              placeholder="Your judgement: is enforcement needed here? why?"
+              multiline
+              numberOfLines={3}
+              style={{ minHeight: 70, textAlignVertical: 'top', paddingTop: spacing.sm }}
+            />
+          </View>
+
+          <View style={styles.card}>
             <Text style={styles.cardTitle}>Notes</Text>
             <Field
-              label="Additional observations"
+              label="Additional observations (optional)"
               value={notes}
               onChangeText={setNotes}
               placeholder="Anything notable about the zone…"

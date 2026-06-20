@@ -1,14 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
 import type { AppNotification } from '@/lib/queries';
 import { useNotifications } from '@/lib/queries';
+import { useAuth } from '@/lib/auth';
 import { colors } from '@/lib/theme';
 
 export default function TabsLayout() {
+  const { user } = useAuth();
   const { data: notifications } = useNotifications();
   const unreadCount = notifications?.filter((n: AppNotification) => !n.is_read).length ?? 0;
+
+  // First-login: force the officer to set a real password before using the app.
+  if (user?.must_change_password) {
+    return <Redirect href="/(auth)/change-password" />;
+  }
 
   return (
     <Tabs

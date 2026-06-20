@@ -54,6 +54,7 @@ export async function create(data: {
         body: `You have been assigned to patrol zone ${cell.h3_index}. Risk level: ${cell.risk_level}.`,
       },
     });
+    await tx.user.update({ where: { id: data.user_id }, data: { availability: 'on_task' } });
     return a;
   });
 
@@ -73,7 +74,7 @@ export async function listAll(filters: { user_id?: string; status?: string }) {
       ...(filters.user_id ? { user_id: filters.user_id } : {}),
       ...(filters.status ? { status: filters.status as AssignmentStatus } : {}),
     },
-    include: cellInclude,
+    include: { ...cellInclude, user: { select: { id: true, name: true, police_station: true } } },
     orderBy: { created_at: 'desc' },
   });
 }
@@ -118,4 +119,33 @@ export async function patch(id: string, action: 'open' | 'complete' | 'expire', 
     data: updateMap[action],
     include: cellInclude,
   });
+}
+
+/** Admin (or unassign-request approval) cancels an assignment and frees the officer. */
+export async function cancel(id: string, reason = 'Assignment cancelled by admin') {
+  const a = await prisma.assignment.findUnique({ where: { id }, include: { user: true, cell: true } });
+  if (!a) throw new AppError(404, 'Assignment not found');
+  if (a.status === 'completed') throw new AppError(400, 'Assignment already completed');
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const u = await tx.assignment.update({
+      where: { id },
+      data: { status: 'cancelled' },
+      include: cellInclude,
+    });
+    await tx.user.update({ where: { id: a.user_id }, data: { availability: 'available' } });
+    await tx.notification.create({
+      data: {
+        user_id: a.user_id,
+        assignment_id: id,
+        type: 'system',
+        title: 'Assignment cancelled',
+        body: `Your patrol assignment for zone ${a.cell.h3_index} has been cancelled. ${reason}`,
+      },
+    });
+    return u;
+  });
+
+  await sendPush(a.user.push_token, 'Assignment cancelled', `Zone ${a.cell.h3_index}: ${reason}`, { assignment_id: id });
+  return updated;
 }

@@ -1,0 +1,95 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button } from '@/components/Button';
+import { Field } from '@/components/Field';
+import { useAuth } from '@/lib/auth';
+import { colors, gradients, radius, spacing, type } from '@/lib/theme';
+
+export default function ChangePasswordScreen() {
+  const { user, changePassword } = useAuth();
+  const router = useRouter();
+  const forced = !!user?.must_change_password;
+
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit() {
+    if (next.length < 6) return setError('New password must be at least 6 characters.');
+    if (next !== confirm) return setError('Passwords do not match.');
+    if (!forced && !current) return setError('Enter your current password.');
+    setError('');
+    setLoading(true);
+    try {
+      await changePassword(next, forced ? undefined : current);
+      router.replace('/(tabs)');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Could not change password.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <LinearGradient colors={gradients.navy} style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+            <View style={styles.card}>
+              <View style={styles.cardIcon}>
+                <Ionicons name="lock-closed" size={26} color={colors.accent} />
+              </View>
+              <Text style={styles.heading}>{forced ? 'Set a new password' : 'Change password'}</Text>
+              <Text style={styles.sub}>
+                {forced
+                  ? 'For security you must change your temporary password before continuing.'
+                  : 'Choose a new password for your account.'}
+              </Text>
+
+              {!forced && (
+                <Field label="Current password" icon="key-outline" value={current} onChangeText={setCurrent}
+                  placeholder="Current password" secureTextEntry autoCapitalize="none" />
+              )}
+              <Field label="New password" icon="lock-closed-outline" value={next} onChangeText={setNext}
+                placeholder="At least 6 characters" secureTextEntry autoCapitalize="none" />
+              <Field label="Confirm new password" icon="lock-closed-outline" value={confirm} onChangeText={setConfirm}
+                placeholder="Re-enter new password" secureTextEntry autoCapitalize="none" />
+
+              {error ? (
+                <View style={styles.errorBox}>
+                  <Ionicons name="alert-circle" size={16} color={colors.risk.critical} />
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : null}
+
+              <Button title="Update password" icon="checkmark-outline" onPress={handleSubmit} loading={loading}
+                style={{ marginTop: spacing.xs }} />
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </LinearGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  scroll: { flexGrow: 1, justifyContent: 'center', padding: spacing.lg },
+  card: { backgroundColor: colors.card, borderRadius: radius.xl, padding: spacing.lg },
+  cardIcon: {
+    width: 56, height: 56, borderRadius: radius.lg, backgroundColor: colors.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+  },
+  heading: { ...type.h1, color: colors.text },
+  sub: { ...type.body, color: colors.textMuted, marginBottom: spacing.lg, marginTop: 2, lineHeight: 20 },
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.risk.critical + '12',
+    borderRadius: radius.sm, padding: spacing.sm, marginBottom: spacing.sm,
+  },
+  errorText: { ...type.caption, color: colors.risk.critical, flex: 1 },
+});

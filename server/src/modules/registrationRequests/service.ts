@@ -43,6 +43,7 @@ export async function approve(id: string, adminId: string) {
         username,
         password: hashedPassword,
         role: 'officer',
+        must_change_password: true,
       },
     });
     await tx.registrationRequest.update({

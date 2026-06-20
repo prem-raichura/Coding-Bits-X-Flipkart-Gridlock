@@ -9,11 +9,14 @@ import {
   Tooltip as RechartsTip,
   Brush,
 } from 'recharts'
-import { Calendar, Info, AlertTriangle, TrendingUp, Activity } from 'lucide-react'
+import { Calendar, Info, AlertTriangle, TrendingUp, Activity, Brain, Clock, Zap, ShieldCheck } from 'lucide-react'
 import {
   useTimeseries,
   useViolations,
   useVehicles,
+  useHotspots,
+  useEDIExplanations,
+  useDashboardKPIs,
 } from '../hooks/useMockData'
 import { Skeleton } from '../components/ui/Skeleton'
 import { cn, formatNumber } from '../lib/utils'
@@ -682,6 +685,118 @@ function InsightsPanel({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// ─── Prediction + Model Explainability (the model is for prediction only) ─────
+
+function PredictionExplainability() {
+  const { data: hotspots, loading: hLoad } = useHotspots()
+  const { data: edis,     loading: eLoad } = useEDIExplanations()
+  const { data: kpis }                     = useDashboardKPIs()
+
+  const top = useMemo(
+    () => [...(hotspots ?? [])].sort((a, b) => b.predicted_24h - a.predicted_24h).slice(0, 8),
+    [hotspots],
+  )
+  const pred24 = useMemo(() => (hotspots ?? []).reduce((s, h) => s + h.predicted_24h, 0), [hotspots])
+  const pred48 = useMemo(() => (hotspots ?? []).reduce((s, h) => s + h.predicted_48h, 0), [hotspots])
+  const psi = edis?.[0]?.model_confidence
+  const lead = edis?.[0]
+
+  if (hLoad || eLoad) return <Skeleton height="h-80" />
+  if (!hotspots?.length) {
+    return (
+      <SectionCard title="Model Predictions & Explainability" subtitle="Upload a CSV to generate forecasts">
+        <div className="px-5 py-12 text-center text-sm text-gray-400">No prediction run yet.</div>
+      </SectionCard>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Prediction KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { icon: TrendingUp, label: 'Predicted · next 24h', value: formatNumber(pred24), color: '#f97316' },
+          { icon: Zap,        label: 'Predicted · next 48h', value: formatNumber(pred48), color: '#ef4444' },
+          { icon: AlertTriangle, label: 'Critical zones', value: String(kpis?.critical_zones ?? '—'), color: '#dc2626' },
+          { icon: ShieldCheck, label: `Model confidence${psi ? ` · ${psi.level}` : ''}`, value: psi ? psi.psi_score.toFixed(3) : '—', color: '#06b6d4' },
+        ].map(({ icon: Icon, label, value, color }) => (
+          <div key={label} className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-surface-dark-card p-4">
+            <Icon size={16} style={{ color }} />
+            <p className="text-2xl font-black text-gray-900 dark:text-gray-100 mt-2 tabular-nums">{value}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Top predicted hotspots */}
+        <SectionCard title="Top Predicted Hotspots" subtitle="Highest forecast violations · next 24h">
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            {top.map((h) => (
+              <div key={h.id} className="flex items-center gap-3 px-5 py-2.5">
+                <span className="text-[11px] font-mono font-bold text-gray-400 w-16 flex-shrink-0">{h.id}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{h.dominant_junction}</p>
+                  {h.peak_hours && (
+                    <p className="text-[10px] text-gray-400 flex items-center gap-1"><Clock size={9} /> {h.peak_hours.label}</p>
+                  )}
+                </div>
+                <span className="text-sm font-black tabular-nums text-orange-500 w-8 text-right">{h.predicted_24h}</span>
+                <span className="text-xs font-bold tabular-nums text-critical-500 w-8 text-right">{h.predicted_48h}</span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        {/* Explainability for the lead hotspot */}
+        <SectionCard title="Why this zone?" subtitle={lead ? `Explainability · ${lead.hotspot_id}` : 'Explainability'}>
+          {lead ? (
+            <div className="px-5 py-4 space-y-4">
+              <div className="flex items-center gap-2 text-xs">
+                <Brain size={14} className="text-violet-500" />
+                <span className="text-gray-600 dark:text-gray-300">{lead.anomaly_alert.message}</span>
+              </div>
+              {/* SHAP-like drivers */}
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Top drivers</p>
+                {lead.shap_drivers.slice(0, 4).map((d) => {
+                  const pos = d.impact.includes('+')
+                  return (
+                    <div key={d.feature}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[10px] font-mono text-gray-500 truncate max-w-[70%]">{d.feature}</span>
+                        <span className={cn('text-[10px] font-bold', pos ? 'text-critical-500' : 'text-low-500')}>
+                          {pos ? '+' : '−'}{(d.shap * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(d.shap / 0.6, 1) * 100}%`, background: pos ? '#ef4444' : '#22c55e' }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {/* Impact forecast */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="rounded-xl bg-low-50 dark:bg-low-950/20 border border-low-100 dark:border-low-900/40 p-3 text-center">
+                  <p className="text-lg font-black text-low-600 dark:text-low-400">{lead.impact_forecast.if_enforced.predicted_violations}</p>
+                  <p className="text-[10px] text-gray-500">If enforced</p>
+                </div>
+                <div className="rounded-xl bg-critical-50 dark:bg-critical-950/20 border border-critical-100 dark:border-critical-900/40 p-3 text-center">
+                  <p className="text-lg font-black text-critical-600 dark:text-critical-400">{lead.impact_forecast.if_not_enforced.predicted_violations}</p>
+                  <p className="text-[10px] text-gray-500">If not enforced</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="px-5 py-12 text-center text-sm text-gray-400">No explainability data.</div>
+          )}
+        </SectionCard>
+      </div>
+    </div>
+  )
+}
+
 export default function Analytics() {
   useEffect(() => { document.title = 'Operational Analytics — TrafficLens' }, [])
 
@@ -709,7 +824,7 @@ export default function Analytics() {
             Operational Analytics
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
-            Enforcement trends, funnel health &amp; violation patterns
+            Model predictions &amp; explainability · with historical enforcement context
           </p>
         </div>
 
@@ -721,6 +836,15 @@ export default function Analytics() {
             Nov 2023 – Apr 2024
           </span>
         </div>
+      </div>
+
+      {/* ── Model predictions + explainability (the model's sole purpose) ─── */}
+      <PredictionExplainability />
+
+      <div className="flex items-center gap-2 pt-1">
+        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Historical context</span>
+        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
       </div>
 
       {/* ── Row 1: Time-based patterns ───────────────────────────── */}

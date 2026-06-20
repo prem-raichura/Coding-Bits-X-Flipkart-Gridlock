@@ -18,6 +18,8 @@ const envSchema = z.object({
   SMTP_FROM: z.string().optional(),
   PUSH_MODE: z.enum(['stub', 'expo']).default('stub'),
   PY_SERVICE_URL: z.string().default('http://localhost:8077'),
+  GEOFENCE_RADIUS_M: z.coerce.number().default(500),
+  REMINDER_CRON: z.string().default('*/5 * * * *'),
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
