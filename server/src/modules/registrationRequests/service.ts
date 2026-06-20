@@ -53,9 +53,15 @@ export async function approve(id: string, adminId: string) {
     return created;
   });
 
-  await sendCredentials(req.email, username, tempPassword);
+  // Fire-and-forget: SMTP can take several seconds — don't block the approval
+  // response on it (that made the UI feel unresponsive / "no toast"). Mail failure
+  // is logged but never fails the approval (the officer is already created).
+  void sendCredentials(req.email, username, tempPassword).catch((e) => {
+    console.error(`[approve] credentials email failed for ${req.email}:`, e);
+  });
   const { password: _, ...safe } = user;
-  return safe;
+  // temp_password returned so the admin can always relay creds (mail is async/best-effort).
+  return { ...safe, temp_password: tempPassword };
 }
 
 export async function reject(id: string, adminId: string) {

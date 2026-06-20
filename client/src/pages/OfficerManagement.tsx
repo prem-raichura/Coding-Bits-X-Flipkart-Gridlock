@@ -379,8 +379,19 @@ export default function OfficerManagement() {
   async function handleApprove(o: PendingOfficer) {
     setPendingList(prev => prev?.filter(p => p.id !== o.id) ?? [])
     try {
-      if (IS_LIVE) await request(`${ENDPOINTS.approveOfficer}/${o.id}`, { method: 'POST', body: {} })
-      toast.success(`${o.name} approved — login credentials emailed`)
+      if (IS_LIVE) {
+        const res = await request<{ username?: string; email_sent?: boolean; temp_password?: string }>(
+          `${ENDPOINTS.approveOfficer}/${o.id}`, { method: 'POST', body: {} },
+        )
+        if (res.email_sent === false && res.temp_password) {
+          // Mail down/unconfigured — show credentials so admin can relay them manually.
+          toast.warning(`${o.name} approved, but email failed. Username: ${res.username} · Temp password: ${res.temp_password}`, { duration: 15000 })
+        } else {
+          toast.success(`${o.name} approved — login credentials emailed`)
+        }
+      } else {
+        toast.success(`${o.name} approved — login credentials emailed`)
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Approve failed')
     }

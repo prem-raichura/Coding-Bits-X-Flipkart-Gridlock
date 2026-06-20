@@ -236,7 +236,7 @@ function TopJunctionsChart({ hotspots }: { hotspots: Hotspot[] }) {
 
 // ─── Scatter plot: Volume vs Impact ──────────────────────────────────────────
 
-function ScatterSection({ hotspots }: { hotspots: Hotspot[] }) {
+export function ScatterSection({ hotspots }: { hotspots: Hotspot[] }) {
   const points: ScatterPoint[] = useMemo(
     () =>
       hotspots.map((h) => ({
@@ -514,7 +514,7 @@ function BlockageTable({ hotspots }: { hotspots: Hotspot[] }) {
 
 // ─── Cascade network SVG ──────────────────────────────────────────────────────
 
-function CascadeNetwork({ hotspots }: { hotspots: Hotspot[] }) {
+export function CascadeNetwork({ hotspots }: { hotspots: Hotspot[] }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const inView  = useInView(wrapRef, { once: true, margin: '-8%' })
 
@@ -651,7 +651,7 @@ function CascadeNetwork({ hotspots }: { hotspots: Hotspot[] }) {
 
 // ─── Key insights panel ───────────────────────────────────────────────────────
 
-function InsightsPanel() {
+export function InsightsPanel() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {INSIGHTS.map(({ icon: Icon, color, text }, i) => (

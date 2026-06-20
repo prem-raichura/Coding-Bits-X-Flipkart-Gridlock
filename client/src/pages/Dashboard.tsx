@@ -22,7 +22,7 @@ import {
   useTimeseries, useViolations, useVehicles,
 } from '../hooks/useMockData'
 import { cn, formatNumber } from '../lib/utils'
-import type { EDIExplanation, Hotspot, TimeseriesData, ViolationType, VehicleType } from '../types'
+import type { EDIExplanation, Hotspot, TimeseriesData, ViolationType, VehicleType, MonthlyPoint } from '../types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -168,7 +168,7 @@ function FilteredTrendChart({ ts, period }: { ts: TimeseriesData; period: Period
   return (
     <div className="px-4 pb-4 pt-2 h-[220px]">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+        <AreaChart data={data as unknown as MonthlyPoint[]} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
           <defs>
             <linearGradient id={gId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%"  stopColor={c2} stopOpacity={0.45} />

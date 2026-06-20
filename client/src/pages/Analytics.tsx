@@ -166,7 +166,7 @@ function PieTip({ active, payload, total }: {
 
 // ─── Validation Funnel ────────────────────────────────────────────────────────
 
-function ValidationFunnel({ funnel }: { funnel: FunnelData }) {
+export function ValidationFunnel({ funnel }: { funnel: FunnelData }) {
   const ref    = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-5%' })
 
@@ -259,7 +259,7 @@ function ValidationFunnel({ funnel }: { funnel: FunnelData }) {
 
 // ─── Station approval chart ───────────────────────────────────────────────────
 
-function StationChart({ stations }: { stations: Station[] }) {
+export function StationChart({ stations }: { stations: Station[] }) {
   const top20 = useMemo(
     () =>
       [...stations]
@@ -616,7 +616,7 @@ function DailyTrendChart({ ts }: { ts: TimeseriesData }) {
 
 // ─── Insights panel ───────────────────────────────────────────────────────────
 
-function InsightsPanel({
+export function InsightsPanel({
   ts,
   violations,
   stations,
