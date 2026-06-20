@@ -9,6 +9,15 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  // Clear demo data so re-running seed stays idempotent (FK-safe order).
+  // Users are preserved (upserted below); their assignments/notifications/validations are rebuilt.
+  await prisma.fieldValidation.deleteMany({});
+  await prisma.notification.deleteMany({});
+  await prisma.assignment.deleteMany({});
+  await prisma.predictionCell.deleteMany({});
+  await prisma.predictionRun.deleteMany({});
+  console.log('Cleared prior demo data (validations, notifications, assignments, cells, runs).');
+
   // Admin
   const adminHash = await bcrypt.hash('admin123', 12);
   const admin = await prisma.user.upsert({
@@ -107,19 +116,20 @@ async function main() {
     console.log(`Cell seeded → ${cell.cell_id} | risk: ${cell.risk_level} | lat: ${cell.latitude}`);
   }
 
-  // Assignments (pending, active, completed) for officer
-  // pending — high-risk cell
-  const pendingAssignment = await prisma.assignment.create({
+  // Assignments (active x2, completed) for officer — no pending stage
+  // active — high-risk cell
+  const secondActiveAssignment = await prisma.assignment.create({
     data: {
       user_id: officer.id,
       cell_id: cells[1].cell_id,
       run_id: run.run_id,
-      status: 'pending',
+      status: 'active',
       time_limit: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      notified_at: new Date(),
+      opened_at: new Date(Date.now() - 15 * 60 * 1000),
+      notified_at: new Date(Date.now() - 30 * 60 * 1000),
     },
   });
-  console.log(`Assignment (pending) seeded → id: ${pendingAssignment.id}`);
+  console.log(`Assignment (active/high) seeded → id: ${secondActiveAssignment.id}`);
 
   // active — critical cell
   const activeAssignment = await prisma.assignment.create({
@@ -164,10 +174,10 @@ async function main() {
   await prisma.notification.create({
     data: {
       user_id: officer.id,
-      assignment_id: pendingAssignment.id,
+      assignment_id: secondActiveAssignment.id,
       type: 'assignment',
       title: 'New patrol zone assigned',
-      body: `You have been assigned to patrol a high-risk zone near MG Road. Report within 24 hours.`,
+      body: `You have been assigned to patrol a high-risk zone near MG Road. Active within 24 hours.`,
       is_read: false,
     },
   });

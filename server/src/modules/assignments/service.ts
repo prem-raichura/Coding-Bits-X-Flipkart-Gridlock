@@ -38,6 +38,8 @@ export async function create(data: {
         user_id: data.user_id,
         cell_id: data.cell_id,
         run_id: data.run_id,
+        status: 'active',
+        opened_at: new Date(),
         time_limit: data.time_limit ? new Date(data.time_limit) : undefined,
         notified_at: new Date(),
       },
@@ -87,12 +89,13 @@ export async function listMine(userId: string, status?: string) {
   });
 }
 
-export async function getById(id: string) {
+export async function getById(id: string, userId: string, role: string) {
   const a = await prisma.assignment.findUnique({
     where: { id },
     include: { ...cellInclude, validation: true },
   });
   if (!a) throw new AppError(404, 'Assignment not found');
+  if (role === 'officer' && a.user_id !== userId) throw new AppError(403, 'Forbidden');
   return a;
 }
 

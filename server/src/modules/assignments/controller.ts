@@ -19,7 +19,7 @@ export const listMine = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  res.json(await service.getById(req.params.id));
+  res.json(await service.getById(req.params.id, req.user!.id, req.user!.role));
 });
 
 export const patch = asyncHandler(async (req: Request, res: Response) => {

@@ -8,5 +8,5 @@ export const CreateValidationSchema = z.object({
   dominant_vehicle_type: z.string().max(50).optional(),
   vehicle_count_approx: z.number().int().min(0).optional(),
   notes: z.string().optional(),
-  photo_url: z.string().url().optional(),
+  photo_url: z.string().url(),
 });
