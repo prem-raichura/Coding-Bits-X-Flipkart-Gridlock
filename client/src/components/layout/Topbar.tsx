@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, Search, Bell, ChevronDown, User, LogOut } from 'lucide-react'
-import { ThemeToggle } from './ThemeToggle'
+// import { ThemeToggle } from './ThemeToggle'
 import { cn } from '../../lib/utils'
 
 interface TopbarProps {
@@ -224,7 +224,7 @@ export function Topbar({ onMobileMenuToggle }: TopbarProps) {
         </motion.button>
 
         {/* Theme toggle */}
-        <ThemeToggle />
+        {/* <ThemeToggle /> */}
 
         {/* Divider */}
         <div className="hidden sm:block h-6 w-px bg-gray-200 dark:bg-gray-700 mx-1" />
