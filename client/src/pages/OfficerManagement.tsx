@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Search, Award, ChevronLeft, ChevronRight,
+  Search, ChevronLeft, ChevronRight,
   Check, X, Activity, TrendingUp, Info, Eye,
 } from 'lucide-react'
 import { useOfficers, usePendingOfficers } from '../hooks/useMockData'
@@ -127,27 +127,11 @@ function OfficerCard({ officer, delay, onViewProfile }: {
       <div className="grid grid-cols-2 gap-2 text-center">
         <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 py-2">
           <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{officer.total_tickets.toLocaleString()}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Tickets</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Assigned</p>
         </div>
         <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 py-2">
-          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{(officer.approval_rate * 100).toFixed(1)}%</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Approval</p>
-        </div>
-      </div>
-
-      {/* Effectiveness */}
-      <div>
-        <div className="flex justify-between text-xs mb-1">
-          <span className="text-gray-500 dark:text-gray-400">Effectiveness</span>
-          <span className="font-medium text-gray-700 dark:text-gray-300">{officer.effectiveness_score.toFixed(1)}%</span>
-        </div>
-        <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${officer.effectiveness_score}%` }}
-            transition={{ duration: 0.6, delay: delay + 0.2, ease: 'easeOut' }}
-            className={cn('h-full rounded-full', effBarColor(officer.effectiveness_score))}
-          />
+          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{Math.round(officer.total_tickets * officer.approval_rate).toLocaleString()}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Completed</p>
         </div>
       </div>
 
@@ -313,9 +297,6 @@ export default function OfficerManagement() {
   const totalActive = officers?.filter(o => o.status !== 'off_duty').length ?? 0
   const onPatrol = officers?.filter(o => o.status === 'on_patrol').length ?? 0
   const availableCount = officers?.filter(o => o.status === 'available').length ?? 0
-  const avgEff = officers?.length
-    ? officers.reduce((s, o) => s + o.effectiveness_score, 0) / officers.length
-    : 0
 
   const pendingCount = pendingList?.length ?? 0
 
@@ -389,7 +370,7 @@ export default function OfficerManagement() {
             <div className="space-y-5">
 
               {/* Stat cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 {officersLoading ? (
                   Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height="h-28" />)
                 ) : (
@@ -397,13 +378,6 @@ export default function OfficerManagement() {
                     <StatCard title="Total Active" value={totalActive} icon={Activity} color="blue" />
                     <StatCard title="On Patrol" value={onPatrol} icon={TrendingUp} color="orange" />
                     <StatCard title="Available" value={availableCount} icon={Check} color="green" />
-                    <StatCard
-                      title="Avg Effectiveness"
-                      value={0}
-                      displayValue={`${avgEff.toFixed(1)}%`}
-                      icon={Award}
-                      color="purple"
-                    />
                   </>
                 )}
               </div>
@@ -567,24 +541,11 @@ export default function OfficerManagement() {
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-3 text-center">
                 <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{profileOfficer.total_tickets.toLocaleString()}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Total Tickets</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Assigned</p>
               </div>
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-3 text-center">
-                <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{(profileOfficer.approval_rate * 100).toFixed(1)}%</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Approval Rate</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-3">
-              <div className="flex justify-between text-xs mb-1.5">
-                <span className="text-gray-500 dark:text-gray-400">Effectiveness Score</span>
-                <span className="font-bold text-gray-800 dark:text-gray-200">{profileOfficer.effectiveness_score.toFixed(1)}%</span>
-              </div>
-              <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                <div
-                  className={cn('h-full rounded-full', effBarColor(profileOfficer.effectiveness_score))}
-                  style={{ width: `${profileOfficer.effectiveness_score}%` }}
-                />
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{Math.round(profileOfficer.total_tickets * profileOfficer.approval_rate).toLocaleString()}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Completed</p>
               </div>
             </div>
 

@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   User, Mail, Phone, Shield, Building2,
   BadgeCheck, MapPin, Clock, CheckCircle2,
-  Camera, Lock,
+  Camera,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 
@@ -361,16 +361,6 @@ export default function Profile() {
             />
           </div>
 
-          {/* Change password link */}
-          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800/60 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <Lock size={13} />
-              Password last changed 30 days ago
-            </div>
-            <button className="text-xs font-semibold text-brand-cyan hover:text-brand-500 transition-colors duration-150">
-              Change Password
-            </button>
-          </div>
         </Section>
       </FadeUp>
 

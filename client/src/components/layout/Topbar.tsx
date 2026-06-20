@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, Search, Bell, ChevronDown, User, LogOut, Settings } from 'lucide-react'
+import { Menu, Search, Bell, ChevronDown, User, LogOut } from 'lucide-react'
 import { ThemeToggle } from './ThemeToggle'
 import { cn } from '../../lib/utils'
 
@@ -99,8 +99,7 @@ function ProfileDropdown() {
             {/* Menu items */}
             <div className="py-1">
               {[
-                { icon: User,     label: 'My Profile',  action: () => go('/profile')   },
-                { icon: Settings, label: 'Settings',    action: () => go('/profile')   },
+                { icon: User, label: 'My Profile', action: () => go('/profile') },
               ].map(({ icon: Icon, label, action }) => (
                 <button
                   key={label}

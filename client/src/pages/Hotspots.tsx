@@ -5,17 +5,17 @@ import { MapContainer, TileLayer, Polygon, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { latLngToCell, cellToBoundary } from 'h3-js'
 import {
-  X, Users, ZoomIn, ZoomOut, RotateCcw, Layers,
+  X, Users, ZoomIn, ZoomOut, RotateCcw,
   ChevronRight, Activity, TrendingUp,
-  CheckCircle, MapPin, Filter,
+  CheckCircle, MapPin, Filter, Building2, Check,
 } from 'lucide-react'
-import { useHotspots, useEDIExplanations, useOfficers } from '../hooks/useMockData'
+import { useHotspots, useEDIExplanations, useOfficers, useStations } from '../hooks/useMockData'
 import { Skeleton } from '../components/ui/Skeleton'
 import { RiskBadge } from '../components/ui/RiskBadge'
 import { Badge } from '../components/ui/Badge'
 import { Dialog } from '../components/ui/Dialog'
 import { cn, formatNumber, formatPercent, haversineKm, getRiskBg } from '../lib/utils'
-import type { Hotspot, Officer, RiskLevel, EDIExplanation } from '../types'
+import type { Hotspot, Officer, Station, RiskLevel, EDIExplanation, OfficerStatus } from '../types'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,13 @@ const RISK_FILTERS: Array<'All' | RiskLevel> = ['All', 'Critical', 'High', 'Medi
 
 interface HexDatum { hotspot: Hotspot; boundary: [number, number][]; cell: string }
 interface OfficerWithDist extends Officer { distance_km: number; eta_min: number }
+
+const OFFICER_STATUS_LABEL: Record<OfficerStatus, string> = {
+  active:     'Active',
+  on_patrol:  'On Patrol',
+  available:  'Available',
+  off_duty:   'Off Duty',
+}
 
 // ─── H3 hex builder — dedup by cell, keep highest hotspot_score ───────────────
 
@@ -460,117 +467,93 @@ function HotspotDetail({ hotspot, edi, onClose, onAssign }: {
   )
 }
 
-// ─── Officer card (in assign dialog) ─────────────────────────────────────────
+// ─── Station card (step 1 of assign flow) ────────────────────────────────────
 
-function OfficerCard({ officer, onAssign }: {
-  officer:  OfficerWithDist
-  onAssign: (id: string) => void
+function StationCard({ station, distKm, freeCount, onClick }: {
+  station:   Station
+  distKm:    number
+  freeCount: number
+  onClick:   () => void
 }) {
-  const initials = officer.name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-
   return (
-    <div className="flex items-center gap-3 py-3.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+    <motion.button
+      onClick={onClick}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className="w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all duration-150
+                 border-gray-200 dark:border-gray-700
+                 bg-white dark:bg-gray-900/60
+                 hover:bg-blue-50 dark:hover:bg-blue-950/20
+                 hover:border-blue-300 dark:hover:border-blue-700"
+    >
       <div
-        className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black text-white"
+        className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
         style={{ background: 'linear-gradient(135deg, #1e3a8a, #06b6d4)' }}
       >
-        {initials}
+        <Building2 size={18} className="text-white" />
       </div>
-
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-            {officer.name}
+        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+          {station.name} Police Station
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          {distKm.toFixed(1)} km away ·{' '}
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+            {freeCount} free officer{freeCount !== 1 ? 's' : ''}
           </span>
-          <span className="text-[10px] font-mono text-gray-400 flex-shrink-0">{officer.badge_id}</span>
-        </div>
-        <div className="flex items-center gap-3 mb-1.5">
-          <span className="text-[10px] text-gray-500 dark:text-gray-400">{officer.station}</span>
-          <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">
-            {officer.distance_km.toFixed(1)} km · ETA {officer.eta_min} min
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${officer.effectiveness_score}%`,
-                background: officer.effectiveness_score > 60 ? '#22c55e' : '#f97316',
-              }}
-            />
-          </div>
-          <span className="text-[10px] text-gray-400 w-16 text-right tabular-nums">
-            {officer.effectiveness_score.toFixed(0)}% eff.
-          </span>
-        </div>
+        </p>
       </div>
-
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => onAssign(officer.id)}
-        className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold
-                   text-emerald-700 dark:text-emerald-400
-                   bg-emerald-50 dark:bg-emerald-950/30
-                   border border-emerald-200 dark:border-emerald-800
-                   hover:bg-emerald-100 dark:hover:bg-emerald-900/30
-                   transition-colors duration-150"
-      >
-        Assign
-      </motion.button>
-    </div>
+      <ChevronRight size={16} className="text-gray-400 flex-shrink-0" />
+    </motion.button>
   )
 }
 
-// ─── Assign officers dialog ───────────────────────────────────────────────────
+// ─── Assign officers dialog (2-step: station → officer multi-select) ──────────
 
-function AssignDialog({ open, hotspot, officers, onClose, onToast }: {
+function AssignDialog({ open, hotspot, officers, stations, onClose, onToast }: {
   open:     boolean
   hotspot:  Hotspot | null
   officers: Officer[]
+  stations: Station[]
   onClose:  () => void
   onToast:  (msg: string) => void
 }) {
-  const [count,       setCount]       = useState(3)
-  const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set())
+  const [selectedStation, setSelectedStation] = useState<Station | null>(null)
+  const [selectedIds,     setSelectedIds]     = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    if (open) setAssignedIds(new Set())
+    if (open) { setSelectedStation(null); setSelectedIds(new Set()) }
   }, [open, hotspot])
 
-  const candidates = useMemo((): OfficerWithDist[] => {
+  const nearbyStations = useMemo((): Array<Station & { distKm: number }> => {
     if (!hotspot) return []
-    return officers
-      .filter((o) =>
-        (o.status === 'available' || o.status === 'active') &&
-        !assignedIds.has(o.id),
-      )
-      .map((o) => {
-        const distance_km = haversineKm(hotspot.lat, hotspot.lon, o.last_lat, o.last_lon)
-        return { ...o, distance_km, eta_min: Math.round((distance_km / 30) * 60) }
-      })
-      .sort((a, b) =>
-        (a.distance_km * 1.2 - a.effectiveness_score * 0.04) -
-        (b.distance_km * 1.2 - b.effectiveness_score * 0.04),
-      )
-      .slice(0, count)
-  }, [hotspot, officers, count, assignedIds])
+    return stations
+      .map((s) => ({ ...s, distKm: haversineKm(hotspot.lat, hotspot.lon, s.lat, s.lon) }))
+      .sort((a, b) => a.distKm - b.distKm)
+      .slice(0, 3)
+  }, [hotspot, stations])
 
-  const handleAssign = useCallback((id: string) => {
-    setAssignedIds((prev) => new Set([...prev, id]))
-    onToast('Officer assigned to zone')
-  }, [onToast])
+  const freeAtStation = useCallback((name: string) =>
+    officers.filter((o) => o.station === name && (o.status === 'available' || o.status === 'active')),
+  [officers])
+
+  const freeOfficers = useMemo(
+    () => (selectedStation ? freeAtStation(selectedStation.name) : []),
+    [selectedStation, freeAtStation],
+  )
+
+  const toggleOfficer = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }, [])
 
   const handleConfirm = useCallback(() => {
-    onToast(`${assignedIds.size} officer${assignedIds.size !== 1 ? 's' : ''} deployed to ${hotspot?.dominant_junction ?? 'zone'}`)
+    onToast(`${selectedIds.size} officer${selectedIds.size !== 1 ? 's' : ''} deployed to ${hotspot?.dominant_junction ?? 'zone'}`)
     onClose()
-  }, [assignedIds.size, hotspot, onClose, onToast])
+  }, [selectedIds.size, hotspot, onClose, onToast])
 
   if (!hotspot) return null
 
@@ -578,72 +561,136 @@ function AssignDialog({ open, hotspot, officers, onClose, onToast }: {
     <Dialog
       open={open}
       onClose={onClose}
-      width="max-w-xl"
-      title={`Assign Officers — ${hotspot.dominant_junction.slice(0, 44)}${hotspot.dominant_junction.length > 44 ? '…' : ''}`}
+      width="max-w-lg"
+      title={
+        selectedStation
+          ? `${selectedStation.name} Police Station`
+          : 'Select Nearby Police Station'
+      }
     >
-      {/* Officer count picker */}
-      <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/60
-                      border border-gray-100 dark:border-gray-800">
-        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex-1">
-          Officers to deploy
-        </label>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCount((c) => Math.max(1, c - 1))}
-            className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm
-                       bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600
-                       text-gray-700 dark:text-gray-300 transition-colors"
+      <AnimatePresence mode="wait">
+        {!selectedStation ? (
+          /* ── Step 1: Station selection ── */
+          <motion.div
+            key="stations"
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0  }}
+            exit={  { opacity: 0, x: -12 }}
+            transition={{ duration: 0.18 }}
           >
-            −
-          </button>
-          <span className="w-8 text-center text-sm font-black text-gray-900 dark:text-gray-100">
-            {count}
-          </span>
-          <button
-            onClick={() => setCount((c) => Math.min(10, c + 1))}
-            className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm
-                       bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600
-                       text-gray-700 dark:text-gray-300 transition-colors"
-          >
-            +
-          </button>
-        </div>
-      </div>
-
-      {/* Officer list */}
-      <div className="max-h-72 overflow-y-auto rounded-xl border border-gray-100 dark:border-gray-800
-                      bg-white dark:bg-gray-950 px-1">
-        {candidates.length === 0 ? (
-          <div className="py-10 text-center text-sm text-gray-400">
-            All available officers have been assigned.
-          </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              3 nearest police stations to this hotspot
+            </p>
+            <div className="space-y-3">
+              {nearbyStations.map((s) => (
+                <StationCard
+                  key={s.name}
+                  station={s}
+                  distKm={s.distKm}
+                  freeCount={freeAtStation(s.name).length}
+                  onClick={() => setSelectedStation(s)}
+                />
+              ))}
+            </div>
+            <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
+              <button
+                onClick={onClose}
+                className="w-full py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                           text-sm font-semibold text-gray-600 dark:text-gray-400
+                           hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
         ) : (
-          candidates.map((o) => (
-            <OfficerCard key={o.id} officer={o} onAssign={handleAssign} />
-          ))
-        )}
-      </div>
+          /* ── Step 2: Officer multi-select ── */
+          <motion.div
+            key="officers"
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0  }}
+            exit={  { opacity: 0, x: 12  }}
+            transition={{ duration: 0.18 }}
+          >
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              Select free officers to assign to {hotspot.dominant_junction.slice(0, 44)}
+            </p>
 
-      {/* Footer */}
-      <div className="flex gap-3 mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
-        <button
-          onClick={onClose}
-          className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
-                     text-sm font-semibold text-gray-600 dark:text-gray-400
-                     hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
-        >
-          Cancel
-        </button>
-        <motion.button
-          onClick={handleConfirm}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white shadow-md"
-          style={{ background: 'linear-gradient(135deg, #1e3a8a, #06b6d4)' }}
-        >
-          Assign Officer
-        </motion.button>
-      </div>
+            <div className="max-h-72 overflow-y-auto rounded-xl border border-gray-100 dark:border-gray-800
+                            bg-white dark:bg-gray-950 divide-y divide-gray-100 dark:divide-gray-800">
+              {freeOfficers.length === 0 ? (
+                <div className="py-10 text-center text-sm text-gray-400">
+                  No free officers at this station.
+                </div>
+              ) : (
+                freeOfficers.map((o) => {
+                  const initials = o.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+                  const checked  = selectedIds.has(o.id)
+                  return (
+                    <button
+                      key={o.id}
+                      onClick={() => toggleOfficer(o.id)}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150',
+                        checked
+                          ? 'bg-blue-50 dark:bg-blue-950/20'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-800/40',
+                      )}
+                    >
+                      <div className={cn(
+                        'flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
+                        checked
+                          ? 'bg-brand-900 border-brand-900'
+                          : 'border-gray-300 dark:border-gray-600',
+                      )}>
+                        {checked && <Check size={11} className="text-white" strokeWidth={3} />}
+                      </div>
+                      <div
+                        className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black text-white"
+                        style={{ background: 'linear-gradient(135deg, #1e3a8a, #06b6d4)' }}
+                      >
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          {o.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {o.badge_id} · {OFFICER_STATUS_LABEL[o.status]}
+                        </p>
+                      </div>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
+              <button
+                onClick={() => { setSelectedStation(null); setSelectedIds(new Set()) }}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                           text-sm font-semibold text-gray-600 dark:text-gray-400
+                           hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+              >
+                Back
+              </button>
+              <motion.button
+                onClick={handleConfirm}
+                disabled={selectedIds.size === 0}
+                whileHover={selectedIds.size > 0 ? { scale: 1.02 } : {}}
+                whileTap={selectedIds.size > 0 ? { scale: 0.97 } : {}}
+                className={cn(
+                  'flex-1 py-2.5 rounded-xl text-sm font-bold text-white shadow-md transition-opacity',
+                  selectedIds.size === 0 ? 'opacity-50 cursor-not-allowed' : '',
+                )}
+                style={{ background: 'linear-gradient(135deg, #1e3a8a, #06b6d4)' }}
+              >
+                Assign{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''} Officer{selectedIds.size !== 1 ? 's' : ''}
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Dialog>
   )
 }
@@ -731,6 +778,7 @@ export default function Hotspots() {
   const { data: hotspots, loading: hotLoad } = useHotspots()
   const { data: edis,     loading: ediLoad } = useEDIExplanations()
   const { data: officers }                   = useOfficers()
+  const { data: stations }                   = useStations()
 
   const [filter,     setFilter]     = useState<'All' | RiskLevel>('All')
   const [selected,   setSelected]   = useState<Hotspot | null>(null)
@@ -918,6 +966,7 @@ export default function Hotspots() {
         open={dialogOpen}
         hotspot={selected}
         officers={officers ?? []}
+        stations={stations ?? []}
         onClose={() => setDialogOpen(false)}
         onToast={handleToast}
       />
