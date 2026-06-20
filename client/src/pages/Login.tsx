@@ -300,7 +300,7 @@ function LoginForm() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPwd,  setShowPwd]  = useState(false)
-  const [remember, setRemember] = useState(false)
+  // const [remember, setRemember] = useState(false)
   const [loading,  setLoading]  = useState(false)
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
