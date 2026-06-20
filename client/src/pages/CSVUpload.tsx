@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
-import { motion, AnimatePresence, animate } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import { uploadCsv, request } from '../lib/api'
+import { useAuth } from '../lib/auth'
 import {
   Upload, FileText, Trash2, RefreshCw, Eye,
   Check, X, AlertTriangle,
@@ -79,8 +81,10 @@ export default function CSVUpload() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadDone, setUploadDone] = useState(false)
-  const animRef = useRef<{ stop: () => void } | null>(null)
-  useEffect(() => () => { animRef.current?.stop() }, [])
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+
+  const { token } = useAuth()
 
   // Newly added entry (for highlight)
   const [newEntryId, setNewEntryId] = useState<string | null>(null)
@@ -120,42 +124,71 @@ export default function CSVUpload() {
     if (file) handleFileSelect(file)
   }
 
-  function handleUploadComplete() {
-    if (!selectedFile) return
+  function finishUpload(runId: string, rowCount: number, filename: string) {
+    setUploadDone(true)
+    setUploadProgress(100)
     const now = new Date()
     const pad = (n: number) => String(n).padStart(2, '0')
     const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
     const newEntry: CSVUploadHistory = {
-      id: `UP-${String(Date.now()).slice(-4)}`,
-      filename: selectedFile.name,
+      id: runId,
+      filename,
       uploaded_on: ts,
-      rows: 8294,
+      rows: rowCount,
       status: 'completed',
-      uploaded_by: 'admin@btp.in',
+      uploaded_by: 'admin',
     }
-    setUploadDone(true)
     setDisplayHistory(prev => [newEntry, ...(prev ?? [])])
-    setNewEntryId(newEntry.id)
-    toast.success(`${selectedFile.name} processed — 8,294 records ingested`)
+    setNewEntryId(runId)
+    toast.success(`${filename} processed — ${rowCount.toLocaleString()} records ingested`)
     setTimeout(() => {
       setIsUploading(false)
       setUploadDone(false)
       setUploadProgress(0)
       setSelectedFile(null)
       setNewEntryId(null)
-    }, 2000)
+    }, 2500)
   }
 
-  function startUpload() {
+  async function startUpload() {
     if (!selectedFile) return
     setIsUploading(true)
-    setUploadProgress(0)
-    animRef.current = animate(0, 100, {
-      duration: 3,
-      ease: 'linear',
-      onUpdate: v => setUploadProgress(v),
-      onComplete: handleUploadComplete,
-    })
+    setUploadProgress(5)
+
+    let runId: string
+    try {
+      const res = await uploadCsv(selectedFile, token)
+      runId = res.run_id
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed')
+      setIsUploading(false)
+      setUploadProgress(0)
+      return
+    }
+
+    // Simulate step progress while polling
+    const STEP_PCTS = [16, 32, 48, 64, 80, 90]
+    let step = 0
+    setUploadProgress(STEP_PCTS[0])
+
+    pollRef.current = setInterval(async () => {
+      try {
+        const run = await request<{ status: string; rows_in?: number }>(`/prediction-runs/${runId}`, { token })
+        if (step < STEP_PCTS.length - 1) {
+          step++
+          setUploadProgress(STEP_PCTS[step])
+        }
+        if (run.status === 'done') {
+          if (pollRef.current) clearInterval(pollRef.current)
+          finishUpload(runId, run.rows_in ?? 0, selectedFile.name)
+        } else if (run.status === 'failed') {
+          if (pollRef.current) clearInterval(pollRef.current)
+          toast.error('Processing failed — check the CSV schema and try again')
+          setIsUploading(false)
+          setUploadProgress(0)
+        }
+      } catch { /* keep polling */ }
+    }, 1500)
   }
 
   function handleReprocess(entry: CSVUploadHistory) {

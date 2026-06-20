@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { toast } from 'sonner'
+import { useAuth } from '../lib/auth'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, Check, ArrowLeft, ArrowRight } from 'lucide-react'
 import { ThemeToggle } from '../components/layout/ThemeToggle'
@@ -318,18 +320,26 @@ function MicrosoftIcon() {
 
 function LoginForm() {
   const navigate = useNavigate()
+  const { login } = useAuth()
 
-  const [email,    setEmail]    = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPwd,  setShowPwd]  = useState(false)
   const [remember, setRemember] = useState(false)
   const [loading,  setLoading]  = useState(false)
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (loading) return
     setLoading(true)
-    setTimeout(() => { setLoading(false); navigate('/dashboard') }, 800)
+    try {
+      await login(username, password)
+      navigate('/dashboard')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -360,9 +370,9 @@ function LoginForm() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            <Field id="email" label="Email address" type="email"
-              value={email} onChange={setEmail}
-              placeholder="officer@btp.gov.in" autoComplete="email"
+            <Field id="username" label="Username" type="text"
+              value={username} onChange={setUsername}
+              placeholder="admin" autoComplete="username"
               left={<Mail size={15} />} />
 
             <Field id="password" label="Password" type={showPwd ? 'text' : 'password'}

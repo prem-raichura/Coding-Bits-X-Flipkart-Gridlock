@@ -17,6 +17,10 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
   PUSH_MODE: z.enum(['stub', 'expo']).default('stub'),
+  PY_SERVICE_URL: z.string().default('http://localhost:8077'),
+  CLOUDINARY_CLOUD_NAME: z.string().min(1),
+  CLOUDINARY_API_KEY: z.string().min(1),
+  CLOUDINARY_API_SECRET: z.string().min(1),
 });
 
 export const env = envSchema.parse(process.env);

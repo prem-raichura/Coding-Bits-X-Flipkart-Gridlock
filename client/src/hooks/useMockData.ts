@@ -40,7 +40,10 @@ function useMock<T>(raw: T, endpoint: string) {
 
   useEffect(() => {
     if (IS_LIVE) {
-      fetch(`${BASE_URL}${endpoint}`)
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('btp_token') : null
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+      fetch(`${BASE_URL}${endpoint}`, { headers })
         .then(r => {
           if (!r.ok) throw new Error(`Server returned ${r.status}`)
           return r.json() as Promise<unknown>

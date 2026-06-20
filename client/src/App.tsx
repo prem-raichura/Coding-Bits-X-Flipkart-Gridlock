@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { ThemeProvider, useTheme } from './hooks/useTheme.tsx'
+import { useAuth } from './lib/auth.tsx'
 import { AppShell } from './components/layout/AppShell'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -11,6 +12,13 @@ import OfficerManagement from './pages/OfficerManagement'
 import CSVUpload from './pages/CSVUpload'
 import Profile from './pages/Profile'
 import NotFound from './pages/NotFound'
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { token, loading } = useAuth()
+  if (loading) return null
+  if (!token) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
 
 function ThemedToaster() {
   const { theme } = useTheme()
@@ -38,13 +46,13 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
 
-          {/* Authenticated routes — wrapped in AppShell */}
-          <Route path="/dashboard"  element={<AppShell><Dashboard /></AppShell>} />
-          <Route path="/hotspots"   element={<AppShell><Hotspots /></AppShell>} />
-          <Route path="/congestion" element={<AppShell><Congestion /></AppShell>} />
-          <Route path="/officers"   element={<AppShell><OfficerManagement /></AppShell>} />
-          <Route path="/csv-upload" element={<AppShell><CSVUpload /></AppShell>} />
-          <Route path="/profile"   element={<AppShell><Profile /></AppShell>} />
+          {/* Authenticated routes — wrapped in AppShell + RequireAuth */}
+          <Route path="/dashboard"  element={<RequireAuth><AppShell><Dashboard /></AppShell></RequireAuth>} />
+          <Route path="/hotspots"   element={<RequireAuth><AppShell><Hotspots /></AppShell></RequireAuth>} />
+          <Route path="/congestion" element={<RequireAuth><AppShell><Congestion /></AppShell></RequireAuth>} />
+          <Route path="/officers"   element={<RequireAuth><AppShell><OfficerManagement /></AppShell></RequireAuth>} />
+          <Route path="/csv-upload" element={<RequireAuth><AppShell><CSVUpload /></AppShell></RequireAuth>} />
+          <Route path="/profile"   element={<RequireAuth><AppShell><Profile /></AppShell></RequireAuth>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

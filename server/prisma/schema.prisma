@@ -5,6 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum RegistrationStatus {
@@ -42,12 +43,26 @@ enum AssignmentStatus {
   active
   completed
   expired
+  cancelled
 }
 
 enum NotificationType {
   assignment
   reminder
   system
+  alert
+}
+
+enum OfficerAvailability {
+  available
+  on_task
+  off_duty
+}
+
+enum UnassignStatus {
+  pending
+  approved
+  rejected
 }
 
 enum CongestionSeverity {
@@ -106,6 +121,9 @@ model User {
 model PredictionRun {
   run_id            String           @id @default(uuid())
   csv_path          String
+  original_filename String?          @db.VarChar(255)
+  rows_in           Int?
+  uploaded_by       String?
   model_version     String           @db.VarChar(50)
   prediction_window PredictionWindow @default(H24)
   h3_resolution     Int              @default(8) @db.SmallInt
@@ -114,6 +132,7 @@ model PredictionRun {
   created_at        DateTime         @default(now())
   cells             PredictionCell[]
   assignments       Assignment[]
+  analytics         RunAnalytics?
 
   @@map("prediction_runs")
 }
@@ -129,12 +148,22 @@ model PredictionCell {
   longitude              Float?
   predicted_violations   Int?
   predicted_tickets      Int?
+  pred_48h               Int?
   dominant_vehicle_type  String?          @db.VarChar(50)
+  dominant_violation     String?          @db.VarChar(80)
   congestion_score       Float?
   impact_score           Float?
   double_violation       Boolean?
   blockage_relation_type String?          @db.VarChar(50)
+  blockage_rate          Int?
   risk_level             RiskLevel
+  risk_score             Int?
+  confidence             Float?
+  location               String?          @db.VarChar(120)
+  z_score                Float?
+  hotspot_code           String?          @db.VarChar(12)
+  forecast_date_24h      DateTime?        @db.Date
+  forecast_date_48h      DateTime?        @db.Date
   created_at             DateTime         @default(now())
   assignments            Assignment[]
   validations            FieldValidation[]
@@ -142,6 +171,24 @@ model PredictionCell {
   @@index([h3_index])
   @@index([run_id])
   @@map("prediction_cells")
+}
+
+model RunAnalytics {
+  run_id      String        @id
+  run         PredictionRun @relation(fields: [run_id], references: [run_id])
+  dashboard   Json
+  hotspots    Json
+  stations    Json
+  officers    Json
+  violations  Json
+  vehicles    Json
+  timeseries  Json
+  funnel      Json
+  edi         Json
+  activity    Json
+  created_at  DateTime      @default(now())
+
+  @@map("run_analytics")
 }
 
 model Assignment {

@@ -993,7 +993,7 @@ function KPIRow({ total, critical_zones, avg_congestion_score, pending_approvals
     <FadeUp delay={0.08} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       <StatCard title="Total Violations Analyzed" value={total} icon={TrendingUp}   color="blue"   trend={8.2} trendLabel="vs prev. period" />
       <StatCard title="Critical Zones"             value={critical_zones}            icon={AlertTriangle} color="red" trend={-1} trendLabel="from last scan" />
-      <StatCard title="Avg Congestion Score"       value={avg_congestion_score}      icon={Activity} color="orange" displayValue={avg_congestion_score.toFixed(1)} />
+      <StatCard title="Avg Congestion Score"       value={avg_congestion_score ?? 0} icon={Activity} color="orange" displayValue={(avg_congestion_score ?? 0).toFixed(1)} />
       <StatCard title="Pending Approvals"          value={pending_approvals}         icon={UserPlus} color="cyan" />
     </FadeUp>
   )

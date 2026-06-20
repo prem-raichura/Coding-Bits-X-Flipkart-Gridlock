@@ -21,7 +21,7 @@ export const ENDPOINTS = {
   violations:      '/violations',
   vehicles:        '/vehicles',
   csvHistory:      '/csv/history',
-  csvUpload:       '/csv/upload',
+  csvUpload:       '/csv',
   edi:             '/edi/explanations',
   activity:        '/activity',
   assignOfficer:   '/officers/assign',
