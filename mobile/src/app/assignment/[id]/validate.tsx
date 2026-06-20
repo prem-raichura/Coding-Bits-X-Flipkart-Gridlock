@@ -1,20 +1,30 @@
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { captureRef } from 'react-native-view-shot';
+import * as Location from 'expo-location';
+import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { uploadPhoto } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { useAssignment, useSubmitValidation } from '@/lib/queries';
 import { colors, radius, riskColor, shadow, spacing, type } from '@/lib/theme';
 
@@ -27,9 +37,18 @@ const SEVERITY_COLOR: Record<Severity, string> = {
   high: riskColor('high'),
 };
 
+interface StampInfo {
+  lat: number;
+  lng: number;
+  place: string;
+  ts: string;
+  zone: string;
+}
+
 export default function ValidateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { token } = useAuth();
   const { data: assignment } = useAssignment(id);
   const submit = useSubmitValidation();
 
@@ -39,12 +58,103 @@ export default function ValidateScreen() {
   const [count, setCount] = useState('');
   const [notes, setNotes] = useState('');
 
+  // Camera state
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraPhase, setCameraPhase] = useState<'preview' | 'review'>('preview');
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [rawUri, setRawUri] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [stampInfo, setStampInfo] = useState<StampInfo | null>(null);
+
+  const cameraRef = useRef<CameraView>(null);
+  const stampedViewRef = useRef<View>(null);
+
+  async function openCameraModal() {
+    if (!cameraPermission?.granted) {
+      const { granted } = await requestCameraPermission();
+      if (!granted) {
+        Alert.alert('Camera required', 'Enable camera permission to take GPS photo.');
+        return;
+      }
+    }
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      let lat = 0, lng = 0, place = '';
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        lat = loc.coords.latitude;
+        lng = loc.coords.longitude;
+        try {
+          const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+          place = [geo[0]?.street, geo[0]?.district, geo[0]?.city].filter(Boolean).join(', ');
+        } catch {}
+      }
+      setStampInfo({
+        lat,
+        lng,
+        place,
+        ts: format(new Date(), 'dd MMM yyyy HH:mm:ss'),
+        zone: assignment?.cell.h3_index.slice(-6).toUpperCase() ?? '',
+      });
+    } catch {
+      setStampInfo({ lat: 0, lng: 0, place: '', ts: format(new Date(), 'dd MMM yyyy HH:mm:ss'), zone: assignment?.cell.h3_index.slice(-6).toUpperCase() ?? '' });
+    }
+    setCameraPhase('preview');
+    setRawUri(null);
+    setCameraOpen(true);
+  }
+
+  async function handleCapture() {
+    if (!cameraRef.current) return;
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.85, skipProcessing: false });
+      setRawUri(photo.uri);
+      setCameraPhase('review');
+    } catch (e) {
+      Alert.alert('Capture failed', (e as Error).message);
+    }
+  }
+
+  async function handleUsePhoto() {
+    if (!rawUri) return;
+    setUploading(true);
+    try {
+      let finalUri = rawUri;
+      // Burn GPS stamp into image on native via ViewShot
+      if (Platform.OS !== 'web' && stampedViewRef.current) {
+        try {
+          finalUri = await captureRef(stampedViewRef, { format: 'jpg', quality: 0.9 });
+        } catch {
+          // ViewShot failed — fall back to raw photo
+        }
+      }
+      const compressed = await ImageManipulator.manipulateAsync(
+        finalUri,
+        [{ resize: { width: 1280 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      const result = await uploadPhoto(compressed.uri, token);
+      setPhotoUrl(result.url);
+      setCameraOpen(false);
+    } catch (e) {
+      Alert.alert('Upload failed', (e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function handleSubmit() {
     if (!assignment) return;
+    if (!photoUrl) {
+      Alert.alert('Photo required', 'Capture a GPS photo before submitting.');
+      return;
+    }
     const body: Parameters<typeof submit.mutate>[0] = {
       assignment_id: assignment.id,
       cell_id: assignment.cell_id,
       has_congestion: hasCongestion,
+      photo_url: photoUrl,
       ...(hasCongestion && severity !== 'none' ? { congestion_severity: severity } : {}),
       ...(vehicleType.trim() ? { dominant_vehicle_type: vehicleType.trim() } : {}),
       ...(count.trim() && !isNaN(parseInt(count)) ? { vehicle_count_approx: parseInt(count) } : {}),
@@ -65,6 +175,29 @@ export default function ValidateScreen() {
       <ScreenHeader title="Field Report" subtitle="Record your on-ground findings" onBack={() => router.back()} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
+          {/* GPS Photo — required */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>GPS Photo <Text style={styles.required}>*</Text></Text>
+            {photoUrl ? (
+              <View>
+                <Image source={{ uri: photoUrl }} style={styles.photoPreview} resizeMode="cover" />
+                <Pressable style={styles.retakeBtn} onPress={openCameraModal}>
+                  <Ionicons name="camera-outline" size={16} color={colors.primary} />
+                  <Text style={styles.retakeBtnText}>Retake photo</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable style={styles.cameraCapture} onPress={openCameraModal}>
+                <View style={styles.cameraCaptureIcon}>
+                  <Ionicons name="camera" size={28} color={colors.primary} />
+                </View>
+                <Text style={styles.cameraCaptureTitle}>Capture GPS photo</Text>
+                <Text style={styles.cameraCaptureSubtitle}>Location stamp will be visible on the photo</Text>
+              </Pressable>
+            )}
+          </View>
+
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Congestion</Text>
             <Pressable style={styles.toggleRow} onPress={() => setHasCongestion((v) => !v)}>
@@ -122,12 +255,101 @@ export default function ValidateScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
-          <Button title="Submit field report" icon="checkmark-done" onPress={handleSubmit} loading={submit.isPending} />
+          {!photoUrl && (
+            <Text style={styles.photoError}>Photo required before submitting</Text>
+          )}
+          <Button
+            title="Submit field report"
+            icon="checkmark-done"
+            onPress={handleSubmit}
+            loading={submit.isPending}
+            disabled={!photoUrl}
+          />
         </View>
       </KeyboardAvoidingView>
+
+      {/* Camera Modal */}
+      <Modal visible={cameraOpen} animationType="slide" statusBarTranslucent>
+        <View style={styles.cameraModal}>
+          {cameraPhase === 'preview' ? (
+            <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back">
+              {/* GPS stamp overlay on live preview */}
+              {stampInfo && <GpsStamp info={stampInfo} />}
+              <SafeAreaView style={styles.cameraUI} edges={['top', 'bottom']}>
+                <TouchableOpacity style={styles.closeBtn} onPress={() => setCameraOpen(false)}>
+                  <Ionicons name="close" size={28} color={colors.white} />
+                </TouchableOpacity>
+                <View style={styles.shutterRow}>
+                  <TouchableOpacity style={styles.shutter} onPress={handleCapture}>
+                    <View style={styles.shutterInner} />
+                  </TouchableOpacity>
+                </View>
+              </SafeAreaView>
+            </CameraView>
+          ) : (
+            <View style={{ flex: 1, backgroundColor: '#000' }}>
+              <View ref={stampedViewRef} style={StyleSheet.absoluteFill} collapsable={false}>
+                {rawUri && (
+                  <Image source={{ uri: rawUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                )}
+                {stampInfo && <GpsStamp info={stampInfo} />}
+              </View>
+              <SafeAreaView style={styles.cameraUI} edges={['top', 'bottom']}>
+                <TouchableOpacity style={styles.closeBtn} onPress={() => setCameraPhase('preview')}>
+                  <Ionicons name="arrow-back" size={28} color={colors.white} />
+                </TouchableOpacity>
+                <View style={styles.reviewBtns}>
+                  <TouchableOpacity style={styles.retakeShutter} onPress={() => setCameraPhase('preview')}>
+                    <Ionicons name="refresh" size={22} color={colors.white} />
+                    <Text style={styles.reviewBtnText}>Retake</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.usePhotoBtn, uploading && { opacity: 0.6 }]}
+                    onPress={handleUsePhoto}
+                    disabled={uploading}
+                  >
+                    <Ionicons name={uploading ? 'hourglass' : 'checkmark'} size={22} color={colors.primary} />
+                    <Text style={styles.usePhotoBtnText}>{uploading ? 'Uploading…' : 'Use photo'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </SafeAreaView>
+            </View>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+function GpsStamp({ info }: { info: StampInfo }) {
+  return (
+    <View style={gpsStyles.container}>
+      <Text style={gpsStyles.ts}>{info.ts}</Text>
+      {info.place ? <Text style={gpsStyles.place} numberOfLines={1}>{info.place}</Text> : null}
+      <Text style={gpsStyles.coords}>
+        {info.lat !== 0 ? `${info.lat.toFixed(6)}, ${info.lng.toFixed(6)}` : 'GPS acquiring…'}
+      </Text>
+      {info.zone ? <Text style={gpsStyles.zone}>Zone {info.zone}</Text> : null}
+    </View>
+  );
+}
+
+const gpsStyles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    bottom: 100,
+    left: 12,
+    right: 12,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 8,
+    padding: 8,
+    gap: 2,
+  },
+  ts: { color: colors.accent, fontSize: 11, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  place: { color: colors.white, fontSize: 12, fontWeight: '500' },
+  coords: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontFamily: 'Courier New', fontVariant: ['tabular-nums'] },
+  zone: { color: 'rgba(255,255,255,0.6)', fontSize: 10 },
+});
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
@@ -142,6 +364,39 @@ const styles = StyleSheet.create({
     ...shadow.sm,
   },
   cardTitle: { ...type.h3, color: colors.text, marginBottom: 2 },
+  required: { color: colors.risk.high },
+  photoPreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: radius.md,
+  },
+  retakeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  retakeBtnText: { ...type.label, color: colors.primary },
+  cameraCapture: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  cameraCaptureIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraCaptureTitle: { ...type.bodyStrong, color: colors.text },
+  cameraCaptureSubtitle: { ...type.caption, color: colors.textMuted, textAlign: 'center' },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   toggleIcon: { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
@@ -174,5 +429,64 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+    gap: spacing.xs,
   },
+  photoError: { ...type.caption, color: colors.risk.high, textAlign: 'center' },
+  // Camera modal
+  cameraModal: { flex: 1, backgroundColor: '#000' },
+  cameraUI: { flex: 1, justifyContent: 'space-between' },
+  closeBtn: {
+    margin: spacing.md,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shutterRow: { alignItems: 'center', paddingBottom: spacing.lg },
+  shutter: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 4,
+    borderColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shutterInner: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.white,
+  },
+  reviewBtns: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    justifyContent: 'center',
+  },
+  retakeShutter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  reviewBtnText: { color: colors.white, ...type.bodyStrong },
+  usePhotoBtn: {
+    flex: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.accent,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  usePhotoBtnText: { color: colors.primary, ...type.bodyStrong },
 });

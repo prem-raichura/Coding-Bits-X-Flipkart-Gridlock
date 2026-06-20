@@ -3,43 +3,51 @@ import { format } from 'date-fns';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { PatrolMap, updateUserLocation } from '@/components/PatrolMap';
 import { RiskBadge } from '@/components/RiskBadge';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StatusPill } from '@/components/StatusPill';
-import { useAssignment, useOpenAssignment } from '@/lib/queries';
+import { useAssignment } from '@/lib/queries';
 import { colors, radius, shadow, spacing, type } from '@/lib/theme';
 
 export default function AssignmentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: assignment, isLoading, error } = useAssignment(id);
-  const openAssignment = useOpenAssignment();
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
-  const mapRef = useRef<WebView | null>(null);
+  const mapRef = useRef<{ postMessage?: (msg: string) => void } | null>(null);
 
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
+    let cancelled = false;
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      sub = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, distanceInterval: 10 },
-        (loc) => {
-          const { latitude, longitude } = loc.coords;
-          setUserLat(latitude);
-          setUserLng(longitude);
-          updateUserLocation(mapRef, latitude, longitude);
-        }
-      );
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted' || cancelled) return;
+        const s = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.High, distanceInterval: 10 },
+          (loc) => {
+            const { latitude, longitude } = loc.coords;
+            setUserLat(latitude);
+            setUserLng(longitude);
+            updateUserLocation(mapRef, latitude, longitude);
+          }
+        );
+        if (cancelled) { try { s.remove(); } catch { /* web shim */ } }
+        else sub = s;
+      } catch {
+        // location unavailable (e.g. web/denied) — map still renders the zone
+      }
     })();
-    return () => { sub?.remove(); };
+    return () => {
+      cancelled = true;
+      try { sub?.remove(); } catch { /* expo-location web lacks removeSubscription */ }
+    };
   }, []);
 
   if (isLoading) {
@@ -63,16 +71,6 @@ export default function AssignmentDetailScreen() {
   }
 
   const { id: assignmentId, cell, status, validation } = assignment;
-
-  function handleOpen() {
-    Alert.alert('Open assignment', 'Mark this assignment as active and start your patrol?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Open',
-        onPress: () => openAssignment.mutate(assignmentId, { onError: (e) => Alert.alert('Error', e.message) }),
-      },
-    ]);
-  }
 
   function handleNavigate() {
     if (cell.latitude == null || cell.longitude == null) {
@@ -133,6 +131,13 @@ export default function AssignmentDetailScreen() {
         {status === 'completed' && validation && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Field report</Text>
+            {'photo_url' in validation && validation.photo_url && (
+              <Image
+                source={{ uri: validation.photo_url as string }}
+                style={styles.reportPhoto}
+                resizeMode="cover"
+              />
+            )}
             <View style={styles.reportCard}>
               <ReportRow icon="car-sport" label="Congestion" value={validation.has_congestion ? 'Yes' : 'No'}
                 badge={validation.has_congestion ? colors.risk.high : colors.risk.low} />
@@ -148,22 +153,17 @@ export default function AssignmentDetailScreen() {
         <View style={{ height: 8 }} />
       </ScrollView>
 
-      {(status === 'pending' || status === 'active') && (
+      {status === 'active' && (
         <View style={styles.footer}>
-          {status === 'pending' && (
-            <Button title="Open assignment" icon="play" onPress={handleOpen} loading={openAssignment.isPending} />
-          )}
-          {status === 'active' && (
-            <View style={styles.footerRow}>
-              <Button title="Navigate" icon="navigate" variant="outline" onPress={handleNavigate} style={{ flex: 1 }} />
-              <Button
-                title="Submit report"
-                icon="clipboard"
-                onPress={() => router.push(`/assignment/${assignmentId}/validate` as never)}
-                style={{ flex: 1.3 }}
-              />
-            </View>
-          )}
+          <View style={styles.footerRow}>
+            <Button title="Navigate" icon="navigate" variant="outline" onPress={handleNavigate} style={{ flex: 1 }} />
+            <Button
+              title="Submit report"
+              icon="clipboard"
+              onPress={() => router.push(`/assignment/${assignmentId}/validate` as never)}
+              style={{ flex: 1.3 }}
+            />
+          </View>
         </View>
       )}
     </SafeAreaView>
@@ -270,6 +270,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
     ...shadow.sm,
+  },
+  reportPhoto: {
+    width: '100%',
+    height: 200,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
   },
   reportCard: {
     backgroundColor: colors.card,

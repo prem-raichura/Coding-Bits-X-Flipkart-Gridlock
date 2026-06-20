@@ -101,8 +101,8 @@ export function PatrolMap({ lat, lng, risk, userLat, userLng }: Props) {
   );
 }
 
-export function updateUserLocation(webViewRef: React.RefObject<WebView | null>, lat: number, lng: number) {
-  webViewRef.current?.postMessage(JSON.stringify({ type: 'location', lat, lng }));
+export function updateUserLocation(ref: React.RefObject<{ postMessage?: (msg: string) => void } | null>, lat: number, lng: number) {
+  ref.current?.postMessage?.(JSON.stringify({ type: 'location', lat, lng }));
 }
 
 const styles = StyleSheet.create({

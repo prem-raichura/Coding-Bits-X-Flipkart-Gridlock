@@ -56,6 +56,14 @@
           "icon": "./assets/images/icon.png",
           "color": "#FFB300"
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "BTP Patrol needs camera access to capture GPS-stamped patrol photos.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {

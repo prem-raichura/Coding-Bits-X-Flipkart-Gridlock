@@ -19,9 +19,11 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (!token) return;
-    getExpoPushToken().then((t) => {
-      if (t) registerToken.mutate(t);
-    });
+    getExpoPushToken()
+      .then((t) => {
+        if (t) registerToken.mutate(t);
+      })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 

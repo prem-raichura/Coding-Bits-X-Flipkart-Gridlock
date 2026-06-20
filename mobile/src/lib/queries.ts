@@ -29,6 +29,7 @@ export interface FieldValidation {
   dominant_vehicle_type: string | null;
   vehicle_count_approx: number | null;
   notes: string | null;
+  photo_url: string | null;
   submitted_at: string;
 }
 
@@ -119,8 +120,9 @@ export function useOpenAssignment() {
   return useMutation({
     mutationFn: (id: string) =>
       request(`/assignments/${id}`, { method: 'PATCH', body: { action: 'open' }, token }),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       qc.invalidateQueries({ queryKey: ['assignments'] });
+      qc.invalidateQueries({ queryKey: ['assignment', id] });
     },
   });
 }
@@ -137,9 +139,11 @@ export function useSubmitValidation() {
       dominant_vehicle_type?: string;
       vehicle_count_approx?: number;
       notes?: string;
+      photo_url: string;
     }) => request('/field-validations', { method: 'POST', body, token }),
-    onSuccess: () => {
+    onSuccess: (_data, body) => {
       qc.invalidateQueries({ queryKey: ['assignments'] });
+      qc.invalidateQueries({ queryKey: ['assignment', body.assignment_id] });
     },
   });
 }

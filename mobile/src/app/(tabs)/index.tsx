@@ -9,7 +9,7 @@ import { ListSkeleton } from '@/components/Skeleton';
 import { useAssignments, type Assignment } from '@/lib/queries';
 import { colors, radius, spacing, type } from '@/lib/theme';
 
-const FILTERS = ['all', 'pending', 'active', 'completed'] as const;
+const FILTERS = ['all', 'active', 'completed'] as const;
 type Filter = (typeof FILTERS)[number];
 
 export default function PatrolScreen() {
@@ -17,10 +17,9 @@ export default function PatrolScreen() {
   const [filter, setFilter] = useState<Filter>('all');
 
   const counts = useMemo(() => {
-    const c = { active: 0, pending: 0, completed: 0 };
+    const c = { active: 0, completed: 0 };
     (data ?? []).forEach((a) => {
       if (a.status === 'active') c.active++;
-      else if (a.status === 'pending') c.pending++;
       else if (a.status === 'completed') c.completed++;
     });
     return c;
@@ -57,7 +56,6 @@ export default function PatrolScreen() {
           <View>
             <View style={styles.statsRow}>
               <StatCard icon="navigate-circle" color={colors.status.active} num={counts.active} label="Active" />
-              <StatCard icon="time" color={colors.status.pending} num={counts.pending} label="Pending" />
               <StatCard icon="checkmark-done-circle" color={colors.status.completed} num={counts.completed} label="Done" />
             </View>
 
