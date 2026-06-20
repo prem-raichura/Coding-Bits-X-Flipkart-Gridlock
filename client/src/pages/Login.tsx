@@ -362,7 +362,7 @@ function LoginForm() {
                 </button>
               } />
 
-            <div className="flex items-center justify-between pt-0.5">
+            {/* <div className="flex items-center justify-between pt-0.5">
               <button type="button" onClick={() => setRemember((r) => !r)}
                 className="flex items-center gap-2 group">
                 <div className={cn(
@@ -385,7 +385,7 @@ function LoginForm() {
               <a href="#" className="text-sm text-brand-cyan hover:text-brand-500 transition-colors duration-150">
                 Forgot password?
               </a>
-            </div>
+            </div> */}
 
             <motion.button type="submit" disabled={loading}
               whileHover={loading ? {} : { scale: 1.02, boxShadow: '0 0 20px rgba(6,182,212,0.3)' }}
