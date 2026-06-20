@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { useAuth } from '../lib/auth'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, ArrowRight } from 'lucide-react'
-import { ThemeToggle } from '../components/layout/ThemeToggle'
+// import { ThemeToggle } from '../components/layout/ThemeToggle'
 import { useTheme } from '../hooks/useTheme'
 import { cn } from '../lib/utils'
 
@@ -471,9 +471,9 @@ export default function Login() {
   useEffect(() => { document.title = 'Sign In — TrafficLens' }, [])
   return (
     <div className="relative flex h-screen overflow-hidden flex-col lg:flex-row">
-      <div className="absolute top-3 right-3 z-50">
+      {/* <div className="absolute top-3 right-3 z-50">
         <ThemeToggle />
-      </div>
+      </div> */}
       <LeftPanel />
       <MobileBanner />
       <LoginForm />
