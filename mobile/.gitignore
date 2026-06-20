@@ -5,6 +5,8 @@ node_modules/
 
 .env
 .claude
+.vscode/*.json
+
 
 # Expo
 .expo/
