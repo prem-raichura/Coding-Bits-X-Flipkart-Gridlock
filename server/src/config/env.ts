@@ -8,7 +8,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(32),
-  JWT_EXPIRES_IN: z.string().default('7d'),
+  JWT_EXPIRES_IN: z.string().default('30d'),
   CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:19006'),
   EMAIL_MODE: z.enum(['stub', 'smtp']).default('stub'),
   SMTP_HOST: z.string().optional(),
