@@ -1,8 +1,15 @@
 import { env } from './config/env.js';
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
+// helmet 8's package "exports" has no "types" condition, so some TS/resolver
+// combos (e.g. the Vercel build) type the default as a non-callable namespace.
+// Resolve the callable defensively so the build is environment-proof.
+import * as helmetModule from 'helmet';
 import morgan from 'morgan';
+
+const helmet = ((helmetModule as { default?: unknown }).default ?? helmetModule) as (
+  ...args: unknown[]
+) => express.RequestHandler;
 import { errorHandler } from './middleware/error.js';
 import authRouter from './modules/auth/router.js';
 import registrationRequestsRouter from './modules/registrationRequests/router.js';
