@@ -6,6 +6,7 @@ import cors from 'cors';
 // Resolve the callable defensively so the build is environment-proof.
 import * as helmetModule from 'helmet';
 import morgan from 'morgan';
+import serverless from "serverless-http";
 
 const helmet = ((helmetModule as { default?: unknown }).default ?? helmetModule) as (
   ...args: unknown[]
@@ -62,4 +63,4 @@ app.listen(env.PORT, () => {
   startReminderCron();
 });
 
-export default app;
+export default serverless(app);
