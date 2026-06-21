@@ -18,6 +18,11 @@ function normalizeBaseUrl(raw: string): string {
   if (!url) return ''
   // Add scheme if a bare host was provided (e.g. "api.example.com/api").
   if (!/^https?:\/\//i.test(url)) url = `https://${url}`
+  // Upgrade http → https for non-localhost hosts (avoids mixed-content blocks
+  // when the app itself is served over HTTPS).
+  if (/^http:\/\//i.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(url)) {
+    url = url.replace(/^http:\/\//i, 'https://')
+  }
   // Strip trailing slash.
   url = url.replace(/\/+$/, '')
   // Ensure the API is rooted at /api.
