@@ -11,7 +11,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('30d'),
   CORS_ORIGINS: z
     .string()
-    .default('http://localhost:3000,http://localhost:19006,https://namma-flow-pcrz.vercel.app'),
+    .default('http://localhost:3000,http://localhost:19006,https://namma-flow-pcrz.vercel.app,https://huggingface.co/spaces/premraichura7/nammaflow'),
   EMAIL_MODE: z.enum(['stub', 'smtp']).default('stub'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),
@@ -19,7 +19,7 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
   PUSH_MODE: z.enum(['stub', 'expo']).default('stub'),
-  PY_SERVICE_URL: z.string().default('http://localhost:8077'),
+  PY_SERVICE_URL: z.string().default('https://huggingface.co/spaces/premraichura7/nammaflow'),
   GEOFENCE_RADIUS_M: z.coerce.number().default(500),
   REMINDER_CRON: z.string().default('*/5 * * * *'),
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
