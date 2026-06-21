@@ -9,7 +9,9 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('30d'),
-  CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:19006'),
+  CORS_ORIGINS: z
+    .string()
+    .default('http://localhost:3000,http://localhost:19006,https://namma-flow-pcrz.vercel.app'),
   EMAIL_MODE: z.enum(['stub', 'smtp']).default('stub'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),
