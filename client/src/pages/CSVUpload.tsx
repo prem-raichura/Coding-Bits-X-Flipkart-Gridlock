@@ -22,7 +22,6 @@ const UPLOAD_STEPS = [
   { label: 'Parsing 8,294 records…', threshold: 16 },
   { label: 'Geo-filtering rows…', threshold: 32 },
   { label: 'Computing H3 cells…', threshold: 48 },
-  { label: 'Running HDBSCAN clustering…', threshold: 64 },
   { label: 'Updating predictions…', threshold: 80 },
   { label: 'Done!', threshold: 100 },
 ]
@@ -167,7 +166,7 @@ export default function CSVUpload() {
     }
 
     // Simulate step progress while polling
-    const STEP_PCTS = [16, 32, 48, 64, 80, 90]
+    const STEP_PCTS = [16, 32, 48, 80, 90]
     let step = 0
     setUploadProgress(STEP_PCTS[0])
 
