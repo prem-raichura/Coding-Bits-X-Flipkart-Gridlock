@@ -8,7 +8,24 @@
  * All hooks in src/hooks/useMockData.ts will automatically switch from JSON mocks
  * to live API calls when BASE_URL is non-empty.
  */
-export const BASE_URL = import.meta.env.VITE_API_URL || ''
+/**
+ * Normalize VITE_API_URL so a misconfigured value can't turn into a relative
+ * path (which would hit the frontend origin instead of the API). Ensures an
+ * absolute URL and an `/api` base path.
+ */
+function normalizeBaseUrl(raw: string): string {
+  let url = raw.trim()
+  if (!url) return ''
+  // Add scheme if a bare host was provided (e.g. "api.example.com/api").
+  if (!/^https?:\/\//i.test(url)) url = `https://${url}`
+  // Strip trailing slash.
+  url = url.replace(/\/+$/, '')
+  // Ensure the API is rooted at /api.
+  if (!/\/api$/i.test(url)) url = `${url}/api`
+  return url
+}
+
+export const BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_URL || '')
 
 export const ENDPOINTS = {
   hotspots:        '/hotspots',
