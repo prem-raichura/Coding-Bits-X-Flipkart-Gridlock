@@ -6,6 +6,7 @@
   "main": "dist/src/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "postinstall": "prisma generate --config prisma/config.ts",
     "build": "tsc",
     "start": "node dist/src/index.js",
     "migrate": "prisma migrate dev --config prisma/config.ts",

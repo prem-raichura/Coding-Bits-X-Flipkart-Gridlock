@@ -6,7 +6,6 @@ import cors from 'cors';
 // Resolve the callable defensively so the build is environment-proof.
 import * as helmetModule from 'helmet';
 import morgan from 'morgan';
-import serverless from "serverless-http";
 
 const helmet = ((helmetModule as { default?: unknown }).default ?? helmetModule) as (
   ...args: unknown[]
@@ -32,8 +31,29 @@ import { startReminderCron } from './jobs/reminders.js';
 
 const app = express();
 
+const allowedOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
+
+function isAllowedOrigin(origin: string): boolean {
+  if (allowedOrigins.includes(origin)) return true;
+  try {
+    const host = new URL(origin).hostname;
+    // Allow any Vercel deployment (prod + preview URLs) without env churn.
+    if (host === 'localhost' || host.endsWith('.vercel.app')) return true;
+  } catch { /* malformed origin */ }
+  return false;
+}
+
+const corsMiddleware = cors({
+  origin(origin, cb) {
+    // Non-browser clients (curl, server-to-server) send no Origin.
+    if (!origin || isAllowedOrigin(origin)) return cb(null, true);
+    return cb(null, false);
+  },
+  credentials: true,
+});
+
 app.use(helmet());
-app.use(cors({ origin: env.CORS_ORIGINS.split(',').map((o) => o.trim()) }));
+app.use(corsMiddleware); // also answers OPTIONS preflight automatically
 app.use(morgan('dev'));
 app.use(express.json());
 
@@ -58,9 +78,14 @@ app.use('/api', analyticsRouter);
 
 app.use(errorHandler);
 
-app.listen(env.PORT, () => {
-  console.log(`\n🚀 Officer App Server → http://localhost:${env.PORT}/api\n`);
-  startReminderCron();
-});
+// Local dev only — on Vercel the app is imported as a serverless function
+// (see api/index.ts), so we must NOT bind a port there.
+if (!process.env.VERCEL) {
+  app.listen(env.PORT, () => {
+    console.log(`\n🚀 Officer App Server → http://localhost:${env.PORT}/api\n`);
+    startReminderCron();
+  });
+}
 
-export default serverless(app);
+export default app;
+export { app };
