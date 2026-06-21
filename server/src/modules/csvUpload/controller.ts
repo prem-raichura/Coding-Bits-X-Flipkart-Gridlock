@@ -8,8 +8,10 @@ export const upload = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
   const run = await service.createRun(req.file, req.user!.id);
-  // Fire-and-forget: don't await so the response returns immediately
-  service.process(run.run_id).catch(() => {/* logged inside process() */});
+  // Must await on serverless: the function freezes after the response, so any
+  // un-awaited background work would be killed. The buffer also only lives for
+  // this invocation, so it is passed straight through.
+  await service.process(run.run_id, req.file.buffer);
   res.status(202).json({ run_id: run.run_id, status: 'pending' });
 });
 

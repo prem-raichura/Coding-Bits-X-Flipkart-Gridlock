@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
 import { prisma } from '../../lib/prisma.js';
@@ -86,7 +85,8 @@ interface PredRow {
 export async function createRun(file: Express.Multer.File, userId: string) {
   return prisma.predictionRun.create({
     data: {
-      csv_path: file.path,
+      // No disk on serverless; keep the original name as the record reference.
+      csv_path: file.originalname ?? 'upload.csv',
       original_filename: file.originalname,
       uploaded_by: userId,
       model_version: 'v6',
@@ -97,14 +97,13 @@ export async function createRun(file: Express.Multer.File, userId: string) {
   });
 }
 
-export async function process(runId: string): Promise<void> {
+export async function process(runId: string, buf: Buffer): Promise<void> {
   const run = await prisma.predictionRun.findUnique({ where: { run_id: runId } });
   if (!run) return;
 
   await prisma.predictionRun.update({ where: { run_id: runId }, data: { status: 'processing' } });
 
   try {
-    const buf = fs.readFileSync(run.csv_path);
 
     // Auto-register any new police stations found in this upload.
     await syncStationsFromCsv(buf);
