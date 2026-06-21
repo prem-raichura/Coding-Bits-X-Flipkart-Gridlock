@@ -115,6 +115,19 @@ export function useMe() {
   });
 }
 
+export function useUpdateProfile() {
+  const { token } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name?: string; email?: string; number?: string; username?: string }) =>
+      request<User>('/users/me', { method: 'PATCH', body, token }),
+    onSuccess: (updated) => {
+      qc.setQueryData(['me'], updated);
+      qc.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
+}
+
 export function useOpenAssignment() {
   const { token } = useAuth();
   const qc = useQueryClient();

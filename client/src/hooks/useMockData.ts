@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type {
   Hotspot,
   Station,
@@ -38,7 +38,11 @@ function useMock<T>(raw: T, endpoint: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  // Fetch (or re-fetch) the endpoint. Flips loading on so callers can show
+  // skeletons during a refresh, not just on first mount.
+  const load = useCallback(() => {
+    setLoading(true)
+    setError(null)
     if (IS_LIVE) {
       const token = typeof localStorage !== 'undefined' ? localStorage.getItem('btp_token') : null
       const headers: Record<string, string> = {}
@@ -56,16 +60,17 @@ function useMock<T>(raw: T, endpoint: string) {
       return
     }
     // Mock mode — simulate network delay with static JSON
-    const id = setTimeout(() => {
+    setTimeout(() => {
       setData(raw)
       setLoading(false)
     }, jitter())
-    return () => clearTimeout(id)
-    // raw and endpoint are module-level / call-site constants — excluded from deps intentionally
+    // raw and endpoint are module-level / call-site constants — stable across renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [endpoint])
 
-  return { data, loading, error }
+  useEffect(() => { load() }, [load])
+
+  return { data, loading, error, refetch: load }
 }
 
 export function useHotspots() {

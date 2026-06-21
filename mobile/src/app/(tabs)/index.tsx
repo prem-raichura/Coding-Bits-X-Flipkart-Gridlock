@@ -42,7 +42,7 @@ export default function PatrolScreen() {
     <SafeAreaView style={styles.safe} edges={[]}>
       <ScreenHeader
         title="Patrol Zones"
-        subtitle="Bengaluru Traffic Police"
+        subtitle="NammaFlow · Keep Bengaluru Moving"
         right={
           <View style={styles.headerStat}>
             <Text style={styles.headerStatNum}>{data?.length ?? 0}</Text>

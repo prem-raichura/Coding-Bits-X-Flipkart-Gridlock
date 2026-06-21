@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -46,14 +47,21 @@ export default function LoginScreen() {
   return (
     <LinearGradient colors={gradients.navy} style={styles.bg}>
       <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.brand}>
-              <View style={styles.logo}>
-                <Ionicons name="shield-half" size={38} color={colors.accent} />
-              </View>
-              <Text style={styles.appName}>Bengaluru Traffic Police</Text>
-              <Text style={styles.appSub}>Officer Patrol System</Text>
+              <Image
+                source={require('../../../assets/logo.png')}
+                style={styles.logo}
+                contentFit="contain"
+              />
+              <Text style={styles.appName}>NammaFlow</Text>
+              <Text style={styles.appSub}>Keep Bengaluru Moving</Text>
             </View>
 
             <View style={styles.card}>
@@ -69,19 +77,19 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <View>
-                <Field
+              <Field
                   label="Password"
                   icon="lock-closed-outline"
                   value={password}
                   onChangeText={setPassword}
                   placeholder="••••••••"
                   secureTextEntry={!showPw}
+                  rightElement={
+                    <Pressable onPress={() => setShowPw((s) => !s)} hitSlop={10}>
+                      <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textMuted} />
+                    </Pressable>
+                  }
                 />
-                <Pressable style={styles.eye} onPress={() => setShowPw((s) => !s)} hitSlop={10}>
-                  <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textMuted} />
-                </Pressable>
-              </View>
 
               {error ? (
                 <View style={styles.errorBox}>
@@ -111,6 +119,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   brand: {
     alignItems: 'center',
@@ -118,14 +127,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   logo: {
-    width: 76,
-    height: 76,
+    width: 96,
+    height: 96,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,179,0,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,179,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: spacing.xs,
   },
   appName: {
@@ -151,11 +155,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginBottom: spacing.lg,
     marginTop: 2,
-  },
-  eye: {
-    position: 'absolute',
-    right: spacing.md,
-    top: 38,
   },
   errorBox: {
     flexDirection: 'row',

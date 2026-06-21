@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 
-const ENV_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000/api';
+const ENV_URL =
+  process.env.EXPO_PUBLIC_API_URL ??
+  (Platform.OS === 'android' ? 'http://10.0.2.2:4000/api' : 'http://localhost:4000/api');
 export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:4000/api' : ENV_URL;
 
 interface RequestOptions {
@@ -8,6 +10,8 @@ interface RequestOptions {
   body?: unknown;
   token?: string | null;
 }
+
+const REQUEST_TIMEOUT_MS = 15000;
 
 export async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = {
@@ -17,11 +21,25 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
     headers['Authorization'] = `Bearer ${opts.token}`;
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: opts.method ?? 'GET',
-    headers,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method: opts.method ?? 'GET',
+      headers,
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`Cannot reach server at ${BASE_URL}. Check network / API URL.`);
+    }
+    throw new Error(`Network error reaching ${BASE_URL}.`);
+  } finally {
+    clearTimeout(timer);
+  }
 
   const json = await res.json().catch(() => ({}));
 

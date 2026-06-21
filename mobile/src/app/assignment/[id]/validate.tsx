@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -192,8 +193,13 @@ export default function ValidateScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <ScreenHeader title="Field Report" subtitle="Record your on-ground findings" onBack={() => router.back()} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          showsVerticalScrollIndicator={false}
+        >
 
           {/* GPS Photo — required */}
           <View style={styles.card}>
@@ -337,11 +343,14 @@ export default function ValidateScreen() {
                     <Text style={styles.reviewBtnText}>Retake</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.usePhotoBtn, uploading && { opacity: 0.6 }]}
+                    style={[styles.usePhotoBtn, uploading && { opacity: 0.7 }]}
                     onPress={handleUsePhoto}
                     disabled={uploading}
                   >
-                    <Ionicons name={uploading ? 'hourglass' : 'checkmark'} size={22} color={colors.primary} />
+                    {uploading
+                      ? <ActivityIndicator size="small" color={colors.primary} />
+                      : <Ionicons name="checkmark" size={22} color={colors.primary} />
+                    }
                     <Text style={styles.usePhotoBtnText}>{uploading ? 'Uploading…' : 'Use photo'}</Text>
                   </TouchableOpacity>
                 </View>
@@ -386,7 +395,7 @@ const gpsStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.lg },
+  content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xxl },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,

@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-// import { Toaster } from 'sonner'
+import { Toaster } from 'sonner'
 import { ThemeProvider } from './hooks/useTheme.tsx'
 import { useAuth } from './lib/auth.tsx'
+import { PageLoader } from './components/ui/PageLoader'
 import { AppShell } from './components/layout/AppShell'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -15,32 +16,23 @@ import NotFound from './pages/NotFound'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuth()
-  if (loading) return null
+  if (loading) return <PageLoader />
   if (!token) return <Navigate to="/login" replace />
   return <>{children}</>
 }
-
-// function ThemedToaster() {
-//   const { theme } = useTheme()
-//   return (
-//     <Toaster
-//       theme={theme}
-//       position="top-right"
-//       richColors
-//       duration={4000}
-//       closeButton
-//       toastOptions={{
-//         style: { fontFamily: 'Inter, system-ui, sans-serif', fontSize: '14px' },
-//       }}
-//     />
-//   )
-// }
 
 export default function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
-        {/* <ThemedToaster /> */}
+        <Toaster
+          theme="light"
+          position="top-right"
+          richColors
+          duration={4000}
+          closeButton
+          toastOptions={{ style: { fontFamily: 'Inter, system-ui, sans-serif', fontSize: '14px' } }}
+        />
         <Routes>
           {/* Public routes — no shell */}
           <Route path="/" element={<Landing />} />

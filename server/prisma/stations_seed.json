@@ -1,272 +1,267 @@
 [
   {
     "name": "Upparpet",
-    "latitude": 12.976989,
-    "longitude": 77.577357
+    "latitude": 12.976687,
+    "longitude": 77.577388
   },
   {
     "name": "Shivajinagar",
-    "latitude": 12.981644,
-    "longitude": 77.607761
+    "latitude": 12.982156,
+    "longitude": 77.607093
   },
   {
     "name": "Malleshwaram",
-    "latitude": 13.007188,
-    "longitude": 77.554606
+    "latitude": 13.005506,
+    "longitude": 77.559753
   },
   {
     "name": "HAL Old Airport",
-    "latitude": 12.93652,
-    "longitude": 77.692612
+    "latitude": 12.943476,
+    "longitude": 77.696762
   },
   {
     "name": "City Market",
-    "latitude": 12.964432,
-    "longitude": 77.57681
+    "latitude": 12.96445,
+    "longitude": 77.577158
   },
   {
     "name": "Vijayanagara",
-    "latitude": 12.974418,
-    "longitude": 77.544727
+    "latitude": 12.977944,
+    "longitude": 77.542834
   },
   {
     "name": "Rajajinagar",
-    "latitude": 12.998962,
-    "longitude": 77.549789
+    "latitude": 12.998721,
+    "longitude": 77.548381
   },
   {
     "name": "Kodigehalli",
-    "latitude": 13.07021,
-    "longitude": 77.588
+    "latitude": 13.059742,
+    "longitude": 77.586111
   },
   {
     "name": "Magadi Road",
-    "latitude": 12.974922,
-    "longitude": 77.551555
+    "latitude": 12.974928,
+    "longitude": 77.553621
   },
   {
     "name": "Jeevanbheemanagar",
-    "latitude": 12.970046,
-    "longitude": 77.645835
-  },
-  {
-    "name": "K.R. Pura",
-    "latitude": 13.008183,
-    "longitude": 77.695296
-  },
-  {
-    "name": "Halasuru Gate",
-    "latitude": 12.964736,
-    "longitude": 77.583972
+    "latitude": 12.968361,
+    "longitude": 77.646969
   },
   {
     "name": "Mahadevapura",
-    "latitude": 12.99584,
-    "longitude": 77.694737
+    "latitude": 12.993489,
+    "longitude": 77.696048
+  },
+  {
+    "name": "K.R. Pura",
+    "latitude": 13.010652,
+    "longitude": 77.698061
+  },
+  {
+    "name": "Halasuru Gate",
+    "latitude": 12.96564,
+    "longitude": 77.583831
   },
   {
     "name": "Chikkajala",
-    "latitude": 13.1844,
-    "longitude": 77.679764
-  },
-  {
-    "name": "HSR Layout",
-    "latitude": 12.91166,
-    "longitude": 77.635525
+    "latitude": 13.182762,
+    "longitude": 77.671183
   },
   {
     "name": "Bellandur",
-    "latitude": 12.922843,
-    "longitude": 77.677392
+    "latitude": 12.918052,
+    "longitude": 77.678891
+  },
+  {
+    "name": "HSR Layout",
+    "latitude": 12.90937,
+    "longitude": 77.636809
   },
   {
     "name": "High ground",
-    "latitude": 12.991397,
-    "longitude": 77.58861
+    "latitude": 12.990079,
+    "longitude": 77.587505
   },
   {
     "name": "Byatarayanapura",
-    "latitude": 12.953685,
-    "longitude": 77.529045
+    "latitude": 12.952414,
+    "longitude": 77.531651
   },
   {
     "name": "Electronic City",
-    "latitude": 12.84188,
-    "longitude": 77.647674
+    "latitude": 12.848565,
+    "longitude": 77.656386
   },
   {
     "name": "Pulikeshinagar(F.Town)",
-    "latitude": 12.995775,
-    "longitude": 77.61338
+    "latitude": 12.995745,
+    "longitude": 77.613774
   },
   {
     "name": "Halasur",
-    "latitude": 12.973446,
-    "longitude": 77.619764
+    "latitude": 12.972809,
+    "longitude": 77.621312
   },
   {
     "name": "Jayanagara",
-    "latitude": 12.927957,
-    "longitude": 77.583609
-  },
-  {
-    "name": "Chamarajpet",
-    "latitude": 12.968245,
-    "longitude": 77.570789
-  },
-  {
-    "name": "Banaswadi",
-    "latitude": 12.996594,
-    "longitude": 77.663632
+    "latitude": 12.925664,
+    "longitude": 77.583813
   },
   {
     "name": "Basavanagudi",
-    "latitude": 12.943326,
-    "longitude": 77.571107
+    "latitude": 12.943205,
+    "longitude": 77.571053
   },
   {
-    "name": "Ashok Nagar",
-    "latitude": 12.963176,
-    "longitude": 77.606182
+    "name": "Chamarajpet",
+    "latitude": 12.970033,
+    "longitude": 77.570784
   },
   {
-    "name": "Adugodi",
-    "latitude": 12.935308,
-    "longitude": 77.617148
-  },
-  {
-    "name": "Cubbon Park",
-    "latitude": 12.974841,
-    "longitude": 77.596933
-  },
-  {
-    "name": "Hebbala",
-    "latitude": 13.035374,
-    "longitude": 77.589083
+    "name": "Banaswadi",
+    "latitude": 12.999384,
+    "longitude": 77.662719
   },
   {
     "name": "Wilson Garden",
-    "latitude": 12.946215,
-    "longitude": 77.586489
+    "latitude": 12.946915,
+    "longitude": 77.589139
+  },
+  {
+    "name": "Adugodi",
+    "latitude": 12.934835,
+    "longitude": 77.62112
+  },
+  {
+    "name": "Ashok Nagar",
+    "latitude": 12.965307,
+    "longitude": 77.604496
+  },
+  {
+    "name": "Cubbon Park",
+    "latitude": 12.975346,
+    "longitude": 77.595921
+  },
+  {
+    "name": "Hebbala",
+    "latitude": 13.039628,
+    "longitude": 77.590233
   },
   {
     "name": "Sheshadripuram",
-    "latitude": 12.990485,
-    "longitude": 77.573457
+    "latitude": 12.991096,
+    "longitude": 77.572969
   },
   {
     "name": "Mico Layout",
-    "latitude": 12.919862,
-    "longitude": 77.606343
+    "latitude": 12.920916,
+    "longitude": 77.605968
   },
   {
     "name": "Yeshwanthpura",
-    "latitude": 13.028554,
-    "longitude": 77.542908
+    "latitude": 13.026791,
+    "longitude": 77.546517
   },
   {
     "name": "Yelahanka",
-    "latitude": 13.09741,
-    "longitude": 77.598814
+    "latitude": 13.100755,
+    "longitude": 77.596513
   },
   {
     "name": "Hulimavu",
-    "latitude": 12.883499,
-    "longitude": 77.637298
+    "latitude": 12.882527,
+    "longitude": 77.625875
   },
   {
     "name": "Whitefield",
-    "latitude": 12.956969,
-    "longitude": 77.733052
+    "latitude": 12.956554,
+    "longitude": 77.731359
   },
   {
     "name": "R.T. Nagar",
-    "latitude": 13.02227,
-    "longitude": 77.592524
-  },
-  {
-    "name": "J.P. Nagar",
-    "latitude": 12.907234,
-    "longitude": 77.585865
-  },
-  {
-    "name": "Madiwala",
-    "latitude": 12.922584,
-    "longitude": 77.620702
-  },
-  {
-    "name": "V.V.Puram (C.Pet)",
-    "latitude": 12.960101,
-    "longitude": 77.576007
+    "latitude": 13.017809,
+    "longitude": 77.59116
   },
   {
     "name": "Sadashivanagar",
-    "latitude": 13.027646,
-    "longitude": 77.574459
+    "latitude": 13.019985,
+    "longitude": 77.575829
+  },
+  {
+    "name": "J.P. Nagar",
+    "latitude": 12.904283,
+    "longitude": 77.588149
   },
   {
     "name": "Kamakshipalya",
-    "latitude": 12.987956,
-    "longitude": 77.50771
+    "latitude": 12.989507,
+    "longitude": 77.511347
+  },
+  {
+    "name": "Madiwala",
+    "latitude": 12.918072,
+    "longitude": 77.622484
+  },
+  {
+    "name": "V.V.Puram (C.Pet)",
+    "latitude": 12.958965,
+    "longitude": 77.574932
   },
   {
     "name": "Banashankari",
-    "latitude": 12.9267,
-    "longitude": 77.550838
+    "latitude": 12.926499,
+    "longitude": 77.554527
   },
   {
     "name": "Jalahalli",
-    "latitude": 13.050589,
-    "longitude": 77.543773
-  },
-  {
-    "name": "Jnanabharathi",
-    "latitude": 12.961024,
-    "longitude": 77.5112
+    "latitude": 13.052605,
+    "longitude": 77.541163
   },
   {
     "name": "Peenya",
-    "latitude": 13.040032,
-    "longitude": 77.514413
+    "latitude": 13.035554,
+    "longitude": 77.511835
   },
   {
     "name": "Hennuru",
-    "latitude": 13.060389,
-    "longitude": 77.633794
+    "latitude": 13.057615,
+    "longitude": 77.636979
   },
   {
-    "name": "K.G. Halli",
-    "latitude": 13.034319,
-    "longitude": 77.624114
+    "name": "Jnanabharathi",
+    "latitude": 12.961951,
+    "longitude": 77.508318
   },
   {
     "name": "Thalagattapura",
-    "latitude": 12.880016,
-    "longitude": 77.557271
-  },
-  {
-    "name": "K.S. Layout",
-    "latitude": 12.907139,
-    "longitude": 77.552056
+    "latitude": 12.878969,
+    "longitude": 77.552567
   },
   {
     "name": "Chikkabanavara",
-    "latitude": 13.04921,
-    "longitude": 77.507484
+    "latitude": 13.051817,
+    "longitude": 77.499603
   },
   {
     "name": "Devanahalli Airport",
-    "latitude": 13.190016,
-    "longitude": 77.680634
+    "latitude": 13.200882,
+    "longitude": 77.688521
+  },
+  {
+    "name": "K.G. Halli",
+    "latitude": 13.028792,
+    "longitude": 77.622651
+  },
+  {
+    "name": "K.S. Layout",
+    "latitude": 12.905329,
+    "longitude": 77.556522
   },
   {
     "name": "Kengeri",
-    "latitude": 12.917037,
-    "longitude": 77.500125
-  },
-  {
-    "name": "No Police Station",
-    "latitude": 13.053188,
-    "longitude": 77.485291
+    "latitude": 12.91981,
+    "longitude": 77.497951
   }
 ]

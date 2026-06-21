@@ -7,9 +7,10 @@ interface Props extends TextInputProps {
   label: string;
   error?: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  rightElement?: React.ReactNode;
 }
 
-export function Field({ label, error, icon, style, onFocus, onBlur, ...props }: Props) {
+export function Field({ label, error, icon, rightElement, style, onFocus, onBlur, ...props }: Props) {
   const [focused, setFocused] = useState(false);
   return (
     <View style={styles.wrapper}>
@@ -29,6 +30,7 @@ export function Field({ label, error, icon, style, onFocus, onBlur, ...props }: 
           onBlur={(e) => { setFocused(false); onBlur?.(e); }}
           {...props}
         />
+        {rightElement && <View style={styles.rightEl}>{rightElement}</View>}
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
@@ -68,6 +70,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
     paddingVertical: spacing.sm + 2,
+  },
+  rightEl: {
+    marginLeft: spacing.xs,
+    padding: spacing.xs,
   },
   error: {
     marginTop: 5,

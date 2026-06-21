@@ -16,7 +16,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return res.status(err.status).json({ error: err.message });
   }
   if (err instanceof ZodError) {
-    return res.status(422).json({ error: 'Validation error', details: err.errors });
+    return res.status(422).json({ error: 'Validation error', details: err.issues });
   }
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });

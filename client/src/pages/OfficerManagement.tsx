@@ -1,11 +1,11 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Award, ChevronLeft, ChevronRight,
   Check, X, Activity, TrendingUp, Info, Eye,
-  MapPin, AlertTriangle, Clock, UserMinus, ShieldAlert,
+  MapPin, AlertTriangle, Clock, UserMinus, ShieldAlert, Loader2,
 } from 'lucide-react'
 import { useOfficers, usePendingOfficers } from '../hooks/useMockData'
 import type { Officer, OfficerStatus, PendingOfficer } from '../types'
@@ -300,14 +300,14 @@ const SELECT_CLS = cn(
 )
 
 export default function OfficerManagement() {
-  const { data: officers, loading: officersLoading } = useOfficers()
-  const { data: pendingData, loading: pendingLoading } = usePendingOfficers()
+  const { data: officers, loading: officersLoading, refetch: refetchOfficers } = useOfficers()
+  const { data: pendingData, loading: pendingLoading, refetch: refetchPending } = usePendingOfficers()
 
-  // Local mutable pending list (approve / reject)
+  // Local mutable pending list (approve / reject). Synced to latest server data
+  // on every (re)fetch so approvals/rejections elsewhere are reflected.
   const [pendingList, setPendingList] = useState<PendingOfficer[] | null>(null)
   useEffect(() => {
-    if (!pendingData) return
-    setPendingList(prev => prev ?? pendingData)
+    if (pendingData) setPendingList(pendingData)
   }, [pendingData])
 
   // Tab
@@ -331,17 +331,35 @@ export default function OfficerManagement() {
   const [breaches, setBreaches] = useState<GeofenceBreach[] | null>(null)
   const [actionBusy, setActionBusy] = useState<string | null>(null)
 
-  useEffect(() => { document.title = 'Officer Management — TrafficLens' }, [])
+  useEffect(() => { document.title = 'Officer Management — NammaFlow' }, [])
 
-  // Fetch tab-specific live data on demand.
+  // Fetch tab-specific data whenever the inner tab changes. The first mount is
+  // skipped for active/pending (their hooks already fetch on mount) so we don't
+  // double-fetch; re-entering a tab always pulls fresh data (e.g. a newly
+  // approved officer shows up in Active without a manual page refresh).
+  const firstTabRun = useRef(true)
   useEffect(() => {
+    if (!firstTabRun.current) {
+      if (activeTab === 'active') refetchOfficers()
+      if (activeTab === 'pending') refetchPending()
+    }
+    firstTabRun.current = false
+
     if (!IS_LIVE) return
-    if (activeTab === 'assigned')
+    if (activeTab === 'assigned') {
+      setAssignments(null)
       getAssignments('active').then((r) => setAssignments(r as AssignmentRow[])).catch(() => setAssignments([]))
-    if (activeTab === 'requests')
+    }
+    if (activeTab === 'requests') {
+      setUnassignReqs(null)
       getUnassignRequests('pending').then(setUnassignReqs).catch(() => setUnassignReqs([]))
-    if (activeTab === 'alerts')
+    }
+    if (activeTab === 'alerts') {
+      setBreaches(null)
       getGeofenceBreaches().then(setBreaches).catch(() => setBreaches([]))
+    }
+    // refetch fns are stable (useCallback); only re-run on tab change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
 
   // ─── Derived ──────────────────────────────────────────────────────────────
@@ -667,7 +685,10 @@ export default function OfficerManagement() {
                         disabled={actionBusy === a.id}
                         className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-critical-700 dark:text-critical-400 bg-critical-50 dark:bg-critical-950/30 border border-critical-200 dark:border-critical-800 hover:bg-critical-100 disabled:opacity-50 transition-colors"
                       >
-                        <UserMinus size={12} /> Unassign
+                        {actionBusy === a.id
+                          ? <Loader2 size={12} className="animate-spin" />
+                          : <><UserMinus size={12} /> Unassign</>
+                        }
                       </button>
                     </div>
                   ))}
@@ -703,11 +724,17 @@ export default function OfficerManagement() {
                       <div className="flex gap-2 mt-3">
                         <button onClick={() => handleUnassignApprove(r.id)} disabled={actionBusy === r.id}
                           className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 rounded-xl bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 disabled:opacity-50 transition-colors">
-                          <Check size={12} /> Approve &amp; unassign
+                          {actionBusy === r.id
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : <><Check size={12} /> Approve &amp; unassign</>
+                          }
                         </button>
                         <button onClick={() => handleUnassignReject(r.id)} disabled={actionBusy === r.id}
                           className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 rounded-xl bg-critical-50 dark:bg-critical-950/30 text-critical-700 dark:text-critical-400 border border-critical-200 dark:border-critical-800 hover:bg-critical-100 disabled:opacity-50 transition-colors">
-                          <X size={12} /> Reject
+                          {actionBusy === r.id
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : <><X size={12} /> Reject</>
+                          }
                         </button>
                       </div>
                     </div>

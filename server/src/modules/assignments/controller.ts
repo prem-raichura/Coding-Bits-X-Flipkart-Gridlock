@@ -19,12 +19,12 @@ export const listMine = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  res.json(await service.getById(req.params.id, req.user!.id, req.user!.role));
+  res.json(await service.getById(String(req.params.id), req.user!.id, req.user!.role));
 });
 
 export const patch = asyncHandler(async (req: Request, res: Response) => {
   const { action } = PatchAssignmentSchema.parse(req.body);
-  res.json(await service.patch(req.params.id, action, req.user!.id, req.user!.role));
+  res.json(await service.patch(String(req.params.id), action, req.user!.id, req.user!.role));
 });
 
 export const cancel = asyncHandler(async (req: Request, res: Response) => {

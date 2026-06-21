@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 
 export default function NotFound() {
-  useEffect(() => { document.title = '404 — TrafficLens' }, [])
+  useEffect(() => { document.title = '404 — NammaFlow' }, [])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-surface-dark px-6">
@@ -25,7 +25,7 @@ export default function NotFound() {
             Page Not Found
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            The route you&apos;re looking for doesn&apos;t exist in TrafficLens.
+            The route you&apos;re looking for doesn&apos;t exist in NammaFlow.
           </p>
           <Link
             to="/dashboard"

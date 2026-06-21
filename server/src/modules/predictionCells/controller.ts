@@ -8,5 +8,5 @@ export const list = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  res.json(await service.getById(req.params.id));
+  res.json(await service.getById(String(req.params.id)));
 });

@@ -13,5 +13,5 @@ export const list = asyncHandler(async (_req: Request, res: Response) => {
 });
 
 export const submit = asyncHandler(async (req: Request, res: Response) => {
-  res.json(await service.submit(req.params.id));
+  res.json(await service.submit(String(req.params.id)));
 });

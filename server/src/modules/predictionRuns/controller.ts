@@ -13,10 +13,10 @@ export const list = asyncHandler(async (_req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  res.json(await service.getById(req.params.id));
+  res.json(await service.getById(String(req.params.id)));
 });
 
 export const ingest = asyncHandler(async (req: Request, res: Response) => {
-  const result = await service.ingest(req.params.id);
+  const result = await service.ingest(String(req.params.id));
   res.json(result);
 });

@@ -1,16 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence, useInView, animate } from 'framer-motion'
+import { motion, useInView, animate } from 'framer-motion'
 import {
   ChevronDown, ArrowRight,
   Car, MapPin, AlertTriangle, Activity, Navigation,
   FileText, Building2, Clock, Layers,
   Code2, MessageSquare, Briefcase,
-  Sun, Moon,
   Bell, Camera, CheckCircle2, Shield, Smartphone,
 } from 'lucide-react'
 import { cn, formatNumber } from '../lib/utils'
-import { useTheme } from '../hooks/useTheme'
 import mobileAppImg from './Mobile app.jpeg'
 import traffic1Img from '../assets/traffic1.png'
 import traffic2Img from '../assets/traffic2.png'
@@ -19,7 +17,7 @@ import traffic2Img from '../assets/traffic2.png'
 // ANIMATED PARTICLE CANVAS
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ParticleCanvas({ isDark }: { isDark: boolean }) {
+function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -45,8 +43,8 @@ function ParticleCanvas({ isDark }: { isDark: boolean }) {
     const W = () => window.innerWidth
     const H = () => window.innerHeight
     const COUNT = 70, LINK = 130
-    const dotColor   = isDark ? 'rgba(6,182,212,0.45)' : 'rgba(6,182,212,0.55)'
-    const lineAlpha  = isDark ? 0.22 : 0.28
+    const dotColor   = 'rgba(6,182,212,0.55)'
+    const lineAlpha  = 0.28
 
     const dots: Dot[] = Array.from({ length: COUNT }, () => ({
       x: Math.random() * W(), y: Math.random() * H(),
@@ -83,8 +81,7 @@ function ParticleCanvas({ isDark }: { isDark: boolean }) {
     }
     draw()
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(animId) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDark])
+  }, [])
 
   return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" aria-hidden="true" />
 }
@@ -93,10 +90,10 @@ function ParticleCanvas({ isDark }: { isDark: boolean }) {
 // HEXAGON GRID BACKGROUND
 // ─────────────────────────────────────────────────────────────────────────────
 
-function HexGrid({ isDark }: { isDark: boolean }) {
-  const stroke = isDark ? 'rgba(6,182,212,0.12)' : 'rgba(6,182,212,0.18)'
-  const fill   = isDark ? 'rgba(6,182,212,0.05)' : 'rgba(6,182,212,0.07)'
-  const bright = isDark ? 'rgba(6,182,212,0.3)'  : 'rgba(6,182,212,0.45)'
+function HexGrid() {
+  const stroke = 'rgba(6,182,212,0.18)'
+  const fill   = 'rgba(6,182,212,0.07)'
+  const bright = 'rgba(6,182,212,0.45)'
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
@@ -155,9 +152,9 @@ function FloatingIcons() {
 // CITY SKYLINE
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CityScape({ isDark }: { isDark: boolean }) {
-  const bA = isDark ? 0.18 : 0.14   // building fill alpha
-  const gA = isDark ? 0.10 : 0.08   // glass accent alpha
+function CityScape() {
+  const bA = 0.14   // building fill alpha
+  const gA = 0.08   // glass accent alpha
 
   return (
     <div className="absolute bottom-0 left-0 right-0 pointer-events-none" aria-hidden="true">
@@ -220,37 +217,15 @@ function AnimatedVehicles() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function HexLogo({ size = 32 }: { size?: number }) {
-  const h = Math.round(size * 1.15)
   return (
-    <svg width={size} height={h} viewBox="0 0 40 46" fill="none" aria-hidden="true">
-      <defs>
-        <linearGradient id="lp-ev" x1="0" y1="0" x2="40" y2="46" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#0c1f5e" />
-          <stop offset="100%" stopColor="#0891b2" />
-        </linearGradient>
-      </defs>
-
-      {/* Hexagon badge */}
-      <path d="M20 1L37 10.5V29.5L20 39L3 29.5V10.5L20 1Z"
-        fill="url(#lp-ev)" stroke="rgba(6,182,212,0.55)" strokeWidth="1.1" />
-
-      {/* 6-blade camera aperture, r=8, center=(20,20) */}
-      <path d="M20 20 L20 12 A8 8 0 0 1 26.93 16 Z"    fill="rgba(255,255,255,0.84)" />
-      <path d="M20 20 L26.93 16 A8 8 0 0 1 26.93 24 Z" fill="rgba(6,182,212,0.72)" />
-      <path d="M20 20 L26.93 24 A8 8 0 0 1 20 28 Z"    fill="rgba(255,255,255,0.84)" />
-      <path d="M20 20 L20 28 A8 8 0 0 1 13.07 24 Z"    fill="rgba(6,182,212,0.72)" />
-      <path d="M20 20 L13.07 24 A8 8 0 0 1 13.07 16 Z" fill="rgba(255,255,255,0.84)" />
-      <path d="M20 20 L13.07 16 A8 8 0 0 1 20 12 Z"    fill="rgba(6,182,212,0.72)" />
-
-      {/* Scan ring */}
-      <circle cx="20" cy="20" r="9.5" fill="none"
-        stroke="rgba(6,182,212,0.30)" strokeWidth="0.7" strokeDasharray="2.5 2" />
-
-      {/* Center lens */}
-      <circle cx="20" cy="20" r="4.5" fill="rgba(8,18,58,0.96)" />
-      <circle cx="20" cy="20" r="2.7" fill="#06b6d4" />
-      <circle cx="20" cy="20" r="1.3" fill="rgba(255,255,255,0.95)" />
-    </svg>
+    <img
+      src="/logo.png"
+      width={size}
+      height={size}
+      alt="NammaFlow"
+      className="object-contain select-none"
+      draggable={false}
+    />
   )
 }
 
@@ -273,48 +248,12 @@ function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// THEME TOGGLE BUTTON
-// ─────────────────────────────────────────────────────────────────────────────
-
-function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => void }) {
-  return (
-    <motion.button
-      onClick={onToggle}
-      whileHover={{ scale: 1.08 }}
-      whileTap={{ scale: 0.93 }}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className={cn(
-        'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold',
-        'border transition-all duration-200',
-        isDark
-          ? 'border-white/20 bg-white/8 text-gray-300 hover:border-yellow-400/50 hover:text-yellow-300 hover:bg-yellow-400/10'
-          : 'border-gray-300 bg-white/70 text-gray-600 hover:border-brand-500/50 hover:text-brand-700 hover:bg-brand-50/60',
-      )}
-    >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.span key={isDark ? 'moon' : 'sun'}
-          initial={{ rotate: -30, opacity: 0, scale: 0.7 }}
-          animate={{ rotate: 0,   opacity: 1, scale: 1   }}
-          exit={  { rotate:  30, opacity: 0, scale: 0.7 }}
-          transition={{ duration: 0.18 }}
-        >
-          {isDark ? <Sun size={13} /> : <Moon size={13} />}
-        </motion.span>
-      </AnimatePresence>
-      {isDark ? 'Light' : 'Dark'}
-    </motion.button>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // NAVBAR
 // ─────────────────────────────────────────────────────────────────────────────
 
 function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const navigate = useNavigate()
-  const { theme, toggleTheme } = useTheme()
-  const isDark = theme === 'dark'
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
@@ -326,9 +265,7 @@ function Navbar() {
     <header className={cn(
       'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
       scrolled
-        ? isDark
-          ? 'bg-[#0a0e1a]/88 backdrop-blur-md border-b border-white/6 shadow-xl shadow-black/20'
-          : 'bg-white/90 backdrop-blur-md border-b border-gray-200/80 shadow-sm'
+        ? 'bg-white/90 backdrop-blur-md border-b border-gray-200/80 shadow-sm'
         : 'bg-transparent',
     )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -338,14 +275,13 @@ function Navbar() {
             <HexLogo size={30} />
           </motion.div>
           <span className={cn('font-bold text-lg tracking-tight transition-colors duration-200',
-            isDark ? 'text-white' : scrolled ? 'text-gray-900' : 'text-gray-800')}>
-            TrafficLens
+            scrolled ? 'text-gray-900' : 'text-gray-800')}>
+            NammaFlow
           </span>
         </Link>
 
-        {/* Right: theme toggle + login */}
+        {/* Right: login */}
         <div className="flex items-center gap-3">
-          <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
           <motion.button onClick={() => navigate('/login')}
             whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
             className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
@@ -364,35 +300,22 @@ function Navbar() {
 
 function HeroSection() {
   const navigate = useNavigate()
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
 
   return (
-    <section className={cn(
-      'relative min-h-screen flex flex-col items-center justify-center overflow-hidden',
-      isDark
-        ? 'bg-[#090d19]'
-        : 'bg-gradient-to-br from-sky-100 via-blue-50 to-slate-50',
-    )}>
-      <ParticleCanvas isDark={isDark} />
-      <HexGrid isDark={isDark} />
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-sky-100 via-blue-50 to-slate-50">
+      <ParticleCanvas />
+      <HexGrid />
       <FloatingIcons />
 
       {/* Radial glow */}
       <motion.div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] pointer-events-none"
         animate={{
-          background: isDark
-            ? [
-                'radial-gradient(ellipse at center, rgba(30,58,138,0.35) 0%, transparent 70%)',
-                'radial-gradient(ellipse at center, rgba(6,182,212,0.25) 0%, transparent 70%)',
-                'radial-gradient(ellipse at center, rgba(30,58,138,0.35) 0%, transparent 70%)',
-              ]
-            : [
-                'radial-gradient(ellipse at center, rgba(30,58,138,0.08) 0%, transparent 70%)',
-                'radial-gradient(ellipse at center, rgba(6,182,212,0.10) 0%, transparent 70%)',
-                'radial-gradient(ellipse at center, rgba(30,58,138,0.08) 0%, transparent 70%)',
-              ],
+          background: [
+            'radial-gradient(ellipse at center, rgba(30,58,138,0.08) 0%, transparent 70%)',
+            'radial-gradient(ellipse at center, rgba(6,182,212,0.10) 0%, transparent 70%)',
+            'radial-gradient(ellipse at center, rgba(30,58,138,0.08) 0%, transparent 70%)',
+          ],
         }}
         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -401,12 +324,7 @@ function HeroSection() {
       <div className="relative z-10 text-center px-4 sm:px-6 max-w-5xl mx-auto">
         {/* Badge */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-          className={cn(
-            'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-8 border',
-            isDark
-              ? 'border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan'
-              : 'border-brand-500/25 bg-brand-50/80 text-brand-700',
-          )}>
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-8 border border-brand-500/25 bg-brand-50/80 text-brand-700">
           <span className="w-1.5 h-1.5 rounded-full bg-brand-cyan animate-pulse" />
           Bengaluru Traffic Police — Command Intelligence Portal
         </motion.div>
@@ -421,14 +339,13 @@ function HeroSection() {
             backgroundSize: '200% auto',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
           }}>
-          TrafficLens
+          NammaFlow
         </motion.h1>
 
         {/* Subheading */}
         <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.25 }}
-          className={cn('text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed',
-            isDark ? 'text-gray-400' : 'text-gray-600')}>
+          className="text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed text-gray-600">
           AI-powered parking enforcement intelligence for Bengaluru. Detect hotspots,
           predict congestion, optimize officer deployment.
         </motion.p>
@@ -445,22 +362,16 @@ function HeroSection() {
           </motion.button>
           <motion.button onClick={() => alert('Mobile app coming soon')}
             whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            className={cn(
-              'inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200',
-              isDark
-                ? 'border border-white/20 text-gray-300 hover:border-brand-cyan/50 hover:text-white bg-white/5 hover:bg-white/10'
-                : 'border border-gray-300 text-gray-600 hover:border-brand-500/50 hover:text-brand-700 bg-white/60 hover:bg-white',
-            )}>
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 border border-gray-300 text-gray-600 hover:border-brand-500/50 hover:text-brand-700 bg-white/60 hover:bg-white">
             Download Mobile App
           </motion.button>
         </motion.div>
       </div>
 
-      <CityScape isDark={isDark} />
+      <CityScape />
 
       {/* Scroll indicator */}
-      <motion.div className={cn('absolute bottom-28 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1',
-          isDark ? 'text-gray-600' : 'text-gray-400')}
+      <motion.div className="absolute bottom-28 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-gray-400"
         animate={{ y: [0, 6, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         aria-hidden="true">
         <span className="text-[10px] uppercase tracking-widest">Scroll</span>
@@ -482,56 +393,37 @@ const STATS = [
 ]
 
 function StatsSection() {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
-
   return (
     <section
       className="relative overflow-hidden py-24 px-4 sm:px-6"
-      style={{
-        background: isDark
-          ? 'linear-gradient(180deg, #090d19 0%, #07101f 50%, #090d19 100%)'
-          : 'linear-gradient(180deg, #eef5ff 0%, #e4efff 50%, #eef5ff 100%)',
-      }}
+      style={{ background: 'linear-gradient(180deg, #eef5ff 0%, #e4efff 50%, #eef5ff 100%)' }}
     >
       {/* ── Animated central radial glow ── */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         aria-hidden="true"
         animate={{
-          background: isDark
-            ? [
-                'radial-gradient(ellipse at 50% 55%, rgba(30,58,138,0.30) 0%, transparent 62%)',
-                'radial-gradient(ellipse at 50% 55%, rgba(6,182,212,0.18) 0%, transparent 62%)',
-                'radial-gradient(ellipse at 50% 55%, rgba(30,58,138,0.30) 0%, transparent 62%)',
-              ]
-            : [
-                'radial-gradient(ellipse at 50% 55%, rgba(30,58,138,0.07) 0%, transparent 62%)',
-                'radial-gradient(ellipse at 50% 55%, rgba(6,182,212,0.09) 0%, transparent 62%)',
-                'radial-gradient(ellipse at 50% 55%, rgba(30,58,138,0.07) 0%, transparent 62%)',
-              ],
+          background: [
+            'radial-gradient(ellipse at 50% 55%, rgba(30,58,138,0.07) 0%, transparent 62%)',
+            'radial-gradient(ellipse at 50% 55%, rgba(6,182,212,0.09) 0%, transparent 62%)',
+            'radial-gradient(ellipse at 50% 55%, rgba(30,58,138,0.07) 0%, transparent 62%)',
+          ],
         }}
         transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       {/* ── Corner accent glows ── */}
       <div className="absolute top-0 left-0 w-96 h-96 pointer-events-none" aria-hidden="true"
-        style={{ background: isDark
-          ? 'radial-gradient(circle at 0% 0%, rgba(30,58,138,0.18) 0%, transparent 55%)'
-          : 'radial-gradient(circle at 0% 0%, rgba(30,58,138,0.06) 0%, transparent 55%)' }} />
+        style={{ background: 'radial-gradient(circle at 0% 0%, rgba(30,58,138,0.06) 0%, transparent 55%)' }} />
       <div className="absolute bottom-0 right-0 w-96 h-96 pointer-events-none" aria-hidden="true"
-        style={{ background: isDark
-          ? 'radial-gradient(circle at 100% 100%, rgba(6,182,212,0.14) 0%, transparent 55%)'
-          : 'radial-gradient(circle at 100% 100%, rgba(6,182,212,0.07) 0%, transparent 55%)' }} />
+        style={{ background: 'radial-gradient(circle at 100% 100%, rgba(6,182,212,0.07) 0%, transparent 55%)' }} />
 
       {/* ── Horizontal scan line ── */}
       <motion.div
         className="absolute left-0 right-0 h-px pointer-events-none"
         aria-hidden="true"
         style={{
-          background: isDark
-            ? 'linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.35) 40%, rgba(6,182,212,0.35) 60%, transparent 100%)'
-            : 'linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.22) 40%, rgba(6,182,212,0.22) 60%, transparent 100%)',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.22) 40%, rgba(6,182,212,0.22) 60%, transparent 100%)',
         }}
         animate={{ top: ['5%', '95%', '5%'] }}
         transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
@@ -558,10 +450,10 @@ function StatsSection() {
             <Activity size={12} />
             Impact By The Numbers
           </motion.div>
-          <h2 className={cn('text-3xl sm:text-4xl font-bold', isDark ? 'text-white' : 'text-gray-900')}>
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
             Bengaluru's enforcement backbone
           </h2>
-          <p className={cn('mt-3 text-sm max-w-md mx-auto', isDark ? 'text-gray-500' : 'text-gray-500')}>
+          <p className="mt-3 text-sm max-w-md mx-auto text-gray-500">
             Six months of real enforcement data powering every prediction and deployment decision.
           </p>
         </motion.div>
@@ -576,13 +468,7 @@ function StatsSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.11 }}
               whileHover={{ y: -6, scale: 1.03 }}
-              className={cn(
-                'relative rounded-2xl p-6 border overflow-hidden group cursor-default',
-                'transition-all duration-300',
-                isDark
-                  ? 'border-white/[0.07] bg-white/[0.04] hover:bg-white/[0.08] hover:border-brand-cyan/30'
-                  : 'border-blue-100/80 bg-white/80 backdrop-blur-sm hover:bg-white hover:border-brand-cyan/50 shadow-md hover:shadow-xl hover:shadow-brand-cyan/10',
-              )}
+              className="relative rounded-2xl p-6 border overflow-hidden group cursor-default transition-all duration-300 border-blue-100/80 bg-white/80 backdrop-blur-sm hover:bg-white hover:border-brand-cyan/50 shadow-md hover:shadow-xl hover:shadow-brand-cyan/10"
             >
               {/* Top accent line — reveals on hover */}
               <div
@@ -623,8 +509,8 @@ function StatsSection() {
                 {display ? display : <CountUp to={value} suffix={suffix} />}
               </p>
 
-              <p className={cn('text-sm font-semibold mb-1', isDark ? 'text-white' : 'text-gray-900')}>{label}</p>
-              <p className={cn('text-xs', isDark ? 'text-gray-500' : 'text-gray-500')}>{sub}</p>
+              <p className="text-sm font-semibold mb-1 text-gray-900">{label}</p>
+              <p className="text-xs text-gray-500">{sub}</p>
             </motion.div>
           ))}
         </div>
@@ -666,8 +552,6 @@ const PROBLEMS = [
 ]
 
 function ProblemSection() {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
 
@@ -675,25 +559,15 @@ function ProblemSection() {
     <section
       ref={ref}
       className="relative overflow-hidden py-24 sm:py-32 px-4 sm:px-6"
-      style={{
-        background: isDark
-          ? 'linear-gradient(180deg, #090d19 0%, #07101f 50%, #090d19 100%)'
-          : 'linear-gradient(180deg, #eef5ff 0%, #e4efff 50%, #eef5ff 100%)',
-      }}
+      style={{ background: 'linear-gradient(180deg, #eef5ff 0%, #e4efff 50%, #eef5ff 100%)' }}
     >
       {/* Subtle problem-tone glows — no hexagons */}
       <div className="absolute top-0 left-0 w-[520px] h-[420px] pointer-events-none" aria-hidden="true"
-        style={{ background: isDark
-          ? 'radial-gradient(ellipse at 0% 0%, rgba(239,68,68,0.08) 0%, transparent 60%)'
-          : 'radial-gradient(ellipse at 0% 0%, rgba(239,68,68,0.05) 0%, transparent 60%)' }} />
+        style={{ background: 'radial-gradient(ellipse at 0% 0%, rgba(239,68,68,0.05) 0%, transparent 60%)' }} />
       <div className="absolute bottom-0 right-0 w-[460px] h-[420px] pointer-events-none" aria-hidden="true"
-        style={{ background: isDark
-          ? 'radial-gradient(ellipse at 100% 100%, rgba(249,115,22,0.07) 0%, transparent 60%)'
-          : 'radial-gradient(ellipse at 100% 100%, rgba(249,115,22,0.04) 0%, transparent 60%)' }} />
+        style={{ background: 'radial-gradient(ellipse at 100% 100%, rgba(249,115,22,0.04) 0%, transparent 60%)' }} />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] pointer-events-none" aria-hidden="true"
-        style={{ background: isDark
-          ? 'radial-gradient(ellipse at center, rgba(239,68,68,0.04) 0%, transparent 65%)'
-          : 'radial-gradient(ellipse at center, rgba(239,68,68,0.03) 0%, transparent 65%)' }} />
+        style={{ background: 'radial-gradient(ellipse at center, rgba(239,68,68,0.03) 0%, transparent 65%)' }} />
 
       <div className="relative z-10 max-w-6xl mx-auto">
 
@@ -719,7 +593,7 @@ function ProblemSection() {
             initial={{ opacity: 0, y: 18 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.55, delay: 0.1 }}
-            className={cn('text-3xl sm:text-4xl font-black tracking-tight', isDark ? 'text-white' : 'text-gray-900')}
+            className="text-3xl sm:text-4xl font-black tracking-tight text-gray-900"
           >
             Illegal parking is silently{' '}
             <span style={{
@@ -734,7 +608,7 @@ function ProblemSection() {
             initial={{ opacity: 0, y: 14 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className={cn('mt-3 text-sm max-w-xl mx-auto leading-relaxed', isDark ? 'text-gray-500' : 'text-gray-500')}
+            className="mt-3 text-sm max-w-xl mx-auto leading-relaxed text-gray-500"
           >
             On-street illegal parking near commercial areas, metro stations, and events chokes
             carriageways and intersections — while enforcement remains reactive and uncoordinated.
@@ -754,7 +628,7 @@ function ProblemSection() {
                 transition={{ duration: 0.52, delay: 0.22 + i * 0.13, ease: 'easeOut' }}
                 className={cn(
                   'flex items-start gap-4 py-5 group',
-                  i < PROBLEMS.length - 1 && (isDark ? 'border-b border-white/[0.05]' : 'border-b border-gray-100'),
+                  i < PROBLEMS.length - 1 && 'border-b border-gray-100',
                 )}
               >
                 <motion.div
@@ -766,10 +640,10 @@ function ProblemSection() {
                   <Icon size={19} style={{ color }} />
                 </motion.div>
                 <div>
-                  <h3 className={cn('text-sm font-bold mb-1.5 group-hover:text-[#ef4444] transition-colors duration-200', isDark ? 'text-white' : 'text-gray-900')}>
+                  <h3 className="text-sm font-bold mb-1.5 group-hover:text-[#ef4444] transition-colors duration-200 text-gray-900">
                     {title}
                   </h3>
-                  <p className={cn('text-xs leading-relaxed', isDark ? 'text-gray-500' : 'text-gray-500')}>{desc}</p>
+                  <p className="text-xs leading-relaxed text-gray-500">{desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -842,9 +716,9 @@ function ProblemSection() {
                 transition={{ duration: 0.4, delay: 0.8 }}
                 style={{
                   position: 'absolute', bottom: -20, right: -16, zIndex: 10,
-                  background: isDark ? 'rgba(12,16,34,0.96)' : 'rgba(255,255,255,0.97)',
+                  background: 'rgba(255,255,255,0.97)',
                   backdropFilter: 'blur(10px)',
-                  border: `1px solid ${isDark ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.2)'}`,
+                  border: '1px solid rgba(239,68,68,0.2)',
                   borderRadius: 14, padding: '10px 16px',
                   boxShadow: '0 10px 30px rgba(0,0,0,0.18)',
                 }}
@@ -1039,7 +913,7 @@ function PhoneMockup() {
           }}>
             <img
               src={mobileAppImg}
-              alt="TrafficLens Officer App – Patrol Zones"
+              alt="NammaFlow Officer App – Patrol Zones"
               style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }}
             />
             {/* Subtle glass sheen */}
@@ -1075,8 +949,6 @@ function PhoneMockup() {
 }
 
 function MobileAppSection() {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-100px' })
 
@@ -1084,25 +956,15 @@ function MobileAppSection() {
     <section
       ref={ref}
       className="relative overflow-hidden py-24 sm:py-32 px-4 sm:px-6"
-      style={{
-        background: isDark
-          ? 'linear-gradient(180deg, #090d19 0%, #07101f 50%, #090d19 100%)'
-          : 'linear-gradient(180deg, #eef5ff 0%, #e4efff 50%, #eef5ff 100%)',
-      }}
+      style={{ background: 'linear-gradient(180deg, #eef5ff 0%, #e4efff 50%, #eef5ff 100%)' }}
     >
       {/* Radial color blobs */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true"
-        style={{ background: isDark
-          ? 'radial-gradient(ellipse at 15% 50%, rgba(30,58,138,0.22) 0%, transparent 55%)'
-          : 'radial-gradient(ellipse at 15% 50%, rgba(30,58,138,0.07) 0%, transparent 55%)' }} />
+        style={{ background: 'radial-gradient(ellipse at 15% 50%, rgba(30,58,138,0.07) 0%, transparent 55%)' }} />
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true"
-        style={{ background: isDark
-          ? 'radial-gradient(ellipse at 85% 50%, rgba(6,182,212,0.10) 0%, transparent 55%)'
-          : 'radial-gradient(ellipse at 85% 50%, rgba(6,182,212,0.06) 0%, transparent 55%)' }} />
+        style={{ background: 'radial-gradient(ellipse at 85% 50%, rgba(6,182,212,0.06) 0%, transparent 55%)' }} />
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true"
-        style={{ background: isDark
-          ? 'radial-gradient(ellipse at 50% 0%, rgba(30,58,138,0.15) 0%, transparent 50%)'
-          : 'radial-gradient(ellipse at 50% 0%, rgba(30,58,138,0.05) 0%, transparent 50%)' }} />
+        style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(30,58,138,0.05) 0%, transparent 50%)' }} />
 
       <div className="relative z-10 max-w-6xl mx-auto">
 
@@ -1122,7 +984,7 @@ function MobileAppSection() {
             initial={{ opacity: 0, y: 22 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.55, delay: 0.1 }}
-            className={cn('text-3xl sm:text-4xl font-black tracking-tight', isDark ? 'text-white' : 'text-gray-900')}
+            className="text-3xl sm:text-4xl font-black tracking-tight text-gray-900"
           >
             Patrol intelligence,{' '}
             <span style={{
@@ -1137,7 +999,7 @@ function MobileAppSection() {
             initial={{ opacity: 0, y: 16 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className={cn('mt-3 text-sm max-w-lg mx-auto leading-relaxed', isDark ? 'text-gray-500' : 'text-gray-600')}
+            className="mt-3 text-sm max-w-lg mx-auto leading-relaxed text-gray-600"
           >
             A dedicated mobile app built for field officers — receive assignments, patrol zones, validate
             completion, and stay tracked — all without leaving the app.
@@ -1183,10 +1045,10 @@ function MobileAppSection() {
 
                 {/* Text */}
                 <div className="pt-0.5">
-                  <h3 className={cn('text-base font-bold mb-1.5 group-hover:text-brand-cyan transition-colors duration-200', isDark ? 'text-white' : 'text-gray-900')}>
+                  <h3 className="text-base font-bold mb-1.5 group-hover:text-brand-cyan transition-colors duration-200 text-gray-900">
                     {title}
                   </h3>
-                  <p className={cn('text-sm leading-relaxed', isDark ? 'text-gray-500' : 'text-gray-600')}>{desc}</p>
+                  <p className="text-sm leading-relaxed text-gray-600">{desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -1213,27 +1075,22 @@ const SOCIAL_LINKS = [
 ]
 
 function Footer() {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
-
   return (
-    <footer className={cn('border-t py-14 px-4 sm:px-6',
-        isDark ? 'bg-[#040609] border-white/5' : 'bg-gray-50 border-gray-200')}>
+    <footer className="border-t py-14 px-4 sm:px-6 bg-gray-50 border-gray-200">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
               <HexLogo size={26} />
-              <span className={cn('font-bold text-base', isDark ? 'text-white' : 'text-gray-900')}>TrafficLens</span>
+              <span className="font-bold text-base text-gray-900">NammaFlow</span>
             </div>
-            <p className={cn('text-xs leading-relaxed mb-5', isDark ? 'text-gray-600' : 'text-gray-500')}>
+            <p className="text-xs leading-relaxed mb-5 text-gray-500">
               AI-powered parking enforcement intelligence, built for Bengaluru Traffic Police.
             </p>
             <div className="flex items-center gap-3">
               {SOCIAL_LINKS.map(({ icon: Icon, label }) => (
                 <button key={label} aria-label={label}
-                  className={cn('p-2 rounded-lg transition-colors duration-150',
-                    isDark ? 'text-gray-600 hover:text-gray-300 hover:bg-white/5' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100')}>
+                  className="p-2 rounded-lg transition-colors duration-150 text-gray-400 hover:text-gray-700 hover:bg-gray-100">
                   <Icon size={16} />
                 </button>
               ))}
@@ -1241,15 +1098,13 @@ function Footer() {
           </div>
           {FOOTER_COLS.map(({ heading, links }) => (
             <div key={heading}>
-              <h4 className={cn('text-xs font-semibold uppercase tracking-widest mb-4',
-                  isDark ? 'text-gray-500' : 'text-gray-400')}>
+              <h4 className="text-xs font-semibold uppercase tracking-widest mb-4 text-gray-400">
                 {heading}
               </h4>
               <ul className="space-y-2.5">
                 {links.map((link) => (
                   <li key={link}>
-                    <a href="#" className={cn('text-xs transition-colors duration-150',
-                        isDark ? 'text-gray-600 hover:text-gray-300' : 'text-gray-500 hover:text-gray-800')}>
+                    <a href="#" className="text-xs transition-colors duration-150 text-gray-500 hover:text-gray-800">
                       {link}
                     </a>
                   </li>
@@ -1258,13 +1113,12 @@ function Footer() {
             </div>
           ))}
         </div>
-        <div className={cn('border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-3',
-            isDark ? 'border-white/5' : 'border-gray-200')}>
-          <p className={cn('text-xs', isDark ? 'text-gray-700' : 'text-gray-400')}>
-            © 2024 TrafficLens. Built for Bengaluru Traffic Police.
+        <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-gray-200">
+          <p className="text-xs text-gray-400">
+            © 2024 NammaFlow. Built for Bengaluru Traffic Police.
           </p>
-          <p className={cn('text-xs', isDark ? 'text-gray-700' : 'text-gray-400')}>
-            Parking Enforcement Intelligence Platform
+          <p className="text-xs text-gray-400">
+            Keep Bengaluru Moving
           </p>
         </div>
       </div>
@@ -1277,13 +1131,10 @@ function Footer() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Landing() {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
-
-  useEffect(() => { document.title = 'TrafficLens — BTP Parking Intelligence' }, [])
+  useEffect(() => { document.title = 'NammaFlow — BTP Parking Intelligence' }, [])
 
   return (
-    <div className={isDark ? 'bg-[#090d19]' : 'bg-[#eef5ff]'}>
+    <div className="bg-[#eef5ff]">
       <Navbar />
       <HeroSection />
       <StatsSection />

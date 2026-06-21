@@ -87,8 +87,13 @@ export default function RegisterScreen() {
   return (
     <LinearGradient colors={gradients.navy} style={styles.bg}>
       <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            showsVerticalScrollIndicator={false}
+          >
             <Pressable onPress={() => router.back()} style={styles.back} hitSlop={10}>
               <Ionicons name="chevron-back" size={22} color={colors.white} />
               <Text style={styles.backText}>Back</Text>
@@ -171,6 +176,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   back: {
     flexDirection: 'row',

@@ -102,6 +102,32 @@ export const getGeofenceBreaches = () => request<GeofenceBreach[]>(`/location/br
 export const getAssignments = (status?: string) =>
   request<unknown[]>(`/assignments${status ? `?status=${status}` : ''}`)
 
+// ── notifications ────────────────────────────────────────────────────────────
+
+export interface AdminNotification {
+  notification_id: string
+  assignment_id: string | null
+  type: string
+  title: string
+  body: string
+  is_read: boolean
+  sent_at: string
+}
+
+export const getNotifications = () =>
+  request<AdminNotification[]>('/notifications')
+
+export const markNotificationRead = (id: string) =>
+  request(`/notifications/${id}/read`, { method: 'PATCH' })
+
+// ── profile ──────────────────────────────────────────────────────────────────
+
+export const getMe = () =>
+  request<import('./auth').User>('/auth/me')
+
+export const updateProfile = (body: { name?: string; email?: string; number?: string; username?: string }) =>
+  request<import('./auth').User>('/users/me', { method: 'PATCH', body })
+
 export async function uploadCsv(file: File, token: string | null): Promise<{ run_id: string; status: string }> {
   const fd = new FormData()
   fd.append('file', file)

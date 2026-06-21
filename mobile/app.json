@@ -1,12 +1,13 @@
 {
   "expo": {
-    "name": "BTP Officer",
+    "name": "NammaFlow",
     "slug": "btp-officer",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "btpofficer",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "icon": "./assets/logo.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "in.gov.karnataka.btp.officer",
@@ -14,11 +15,22 @@
         "NSLocationWhenInUseUsageDescription": "Your location is used to confirm you are patrolling your assigned zone.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Background location lets command confirm you remain in your assigned zone for the duration of your patrol.",
         "NSCameraUsageDescription": "The camera is used to capture a GPS-stamped photo for your field report.",
-        "UIBackgroundModes": ["location", "fetch"]
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ],
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true,
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
     "android": {
       "package": "in.gov.karnataka.btp.officer",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#ffffff"
+      },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -38,7 +50,27 @@
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
       ]
-    ]
+    ],
+    "web": {
+      "favicon": "./assets/logo.png"
+    }
   }
 }

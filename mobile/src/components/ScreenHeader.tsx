@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -29,7 +30,11 @@ export function ScreenHeader({ title, subtitle, onBack, right, compact }: Props)
           </Pressable>
         ) : (
           <View style={styles.brandDot}>
-            <Ionicons name="shield-half" size={18} color={colors.accent} />
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.brandLogo}
+              contentFit="contain"
+            />
           </View>
         )}
         <View style={styles.textBlock}>
@@ -66,9 +71,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,179,0,0.15)',
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  brandLogo: {
+    width: 34,
+    height: 34,
   },
   textBlock: {
     flex: 1,

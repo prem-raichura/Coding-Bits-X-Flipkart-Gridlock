@@ -8,16 +8,16 @@ export const list = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getById = asyncHandler(async (req: Request, res: Response) => {
-  const result = await service.getById(req.params.id);
+  const result = await service.getById(String(req.params.id));
   res.json(result);
 });
 
 export const approve = asyncHandler(async (req: Request, res: Response) => {
-  const result = await service.approve(req.params.id, req.user!.id);
+  const result = await service.approve(String(req.params.id), req.user!.id);
   res.json(result);
 });
 
 export const reject = asyncHandler(async (req: Request, res: Response) => {
-  const result = await service.reject(req.params.id, req.user!.id);
+  const result = await service.reject(String(req.params.id), req.user!.id);
   res.json(result);
 });

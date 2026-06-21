@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../middleware/error.js';
 import type { z } from 'zod';
-import type { PatchUserSchema } from './schema.js';
+import type { PatchUserSchema, UpdateMeSchema } from './schema.js';
 
 const safeSelect = {
   id: true,
@@ -31,6 +31,26 @@ export async function getById(id: string) {
 export async function patch(id: string, data: z.infer<typeof PatchUserSchema>) {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) throw new AppError(404, 'User not found');
+  return prisma.user.update({ where: { id }, data, select: safeSelect });
+}
+
+export async function updateMe(id: string, data: z.infer<typeof UpdateMeSchema>) {
+  // Reject an email already used by another account.
+  if (data.email) {
+    const clash = await prisma.user.findFirst({
+      where: { email: data.email, NOT: { id } },
+      select: { id: true },
+    });
+    if (clash) throw new AppError(409, 'Email already in use');
+  }
+  // Reject a username already taken by another account.
+  if (data.username) {
+    const clash = await prisma.user.findFirst({
+      where: { username: data.username, NOT: { id } },
+      select: { id: true },
+    });
+    if (clash) throw new AppError(409, 'Username already taken');
+  }
   return prisma.user.update({ where: { id }, data, select: safeSelect });
 }
 

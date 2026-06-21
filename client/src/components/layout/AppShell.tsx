@@ -8,6 +8,34 @@ import { PageTransition } from './PageTransition'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { cn } from '../../lib/utils'
 
+function RouteProgressBar({ pathname }: { pathname: string }) {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    setVisible(true)
+    const t = setTimeout(() => setVisible(false), 500)
+    return () => clearTimeout(t)
+  }, [pathname])
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          key={pathname}
+          className="fixed top-0 left-0 h-[2px] z-[500] bg-gradient-to-r from-brand-900 to-brand-cyan"
+          initial={{ width: '0%', opacity: 1 }}
+          animate={{ width: '100%', opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{
+            width: { duration: 0.38, ease: 'easeInOut' },
+            opacity: { duration: 0.2 },
+          }}
+        />
+      )}
+    </AnimatePresence>
+  )
+}
+
 interface AppShellProps {
   children: ReactNode
 }
@@ -39,11 +67,11 @@ export function AppShell({ children }: AppShellProps) {
     <div className={cn(
       'flex h-screen overflow-hidden',
     )}>
+      <RouteProgressBar pathname={location.pathname} />
       {/* ── Sidebar ────────────────────────────────────────────── */}
       <Sidebar
         collapsed={collapsed}
         mobileOpen={mobileOpen}
-        onToggleCollapsed={() => setCollapsed((c) => !c)}
         onCloseMobile={() => setMobileOpen(false)}
       />
 
@@ -69,7 +97,12 @@ export function AppShell({ children }: AppShellProps) {
         animate={{ paddingLeft: isDesktop ? sidebarWidth : 0 }}
         transition={{ duration: 0.25, ease: 'easeInOut' }}
       >
-        <Topbar onMobileMenuToggle={() => setMobileOpen((o) => !o)} />
+        <Topbar
+          onMenuToggle={() => {
+            if (isDesktop) setCollapsed((c) => !c)
+            else setMobileOpen((o) => !o)
+          }}
+        />
 
         <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="p-4 md:p-6 min-h-full">

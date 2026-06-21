@@ -22,7 +22,7 @@ export function AssignmentCard({ assignment: a }: Props) {
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, shadow.sm, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, shadow.sm, pressed && styles.pressed, pressed && { borderColor: rColor + '55' }]}
       onPress={() => router.push(`/assignment/${a.id}` as never)}
     >
       <View style={[styles.iconCol, { backgroundColor: rColor + '14' }]}>
@@ -89,8 +89,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
+    opacity: 0.88,
+    transform: [{ scale: 0.982 }],
   },
   iconCol: {
     width: 46,

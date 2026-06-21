@@ -7,5 +7,5 @@ export const listMine = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const markRead = asyncHandler(async (req: Request, res: Response) => {
-  res.json(await service.markRead(req.params.id, req.user!.id));
+  res.json(await service.markRead(String(req.params.id), req.user!.id));
 });
