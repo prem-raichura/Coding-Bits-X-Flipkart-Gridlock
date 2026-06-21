@@ -6,6 +6,7 @@ import cors from 'cors';
 // Resolve the callable defensively so the build is environment-proof.
 import * as helmetModule from 'helmet';
 import morgan from 'morgan';
+import serverless from "serverless-http";
 
 const helmet = ((helmetModule as { default?: unknown }).default ?? helmetModule) as (
   ...args: unknown[]
@@ -78,14 +79,9 @@ app.use('/api', analyticsRouter);
 
 app.use(errorHandler);
 
-// Local dev only — on Vercel the app is imported as a serverless function
-// (see api/index.ts), so we must NOT bind a port there.
-if (!process.env.VERCEL) {
-  app.listen(env.PORT, () => {
-    console.log(`\n🚀 Officer App Server → http://localhost:${env.PORT}/api\n`);
-    startReminderCron();
-  });
-}
+app.listen(env.PORT, () => {
+  console.log(`\n🚀 Officer App Server → http://localhost:${env.PORT}/api\n`);
+  startReminderCron();
+});
 
-export default app;
-export { app };
+export default serverless(app);
