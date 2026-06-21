@@ -113,6 +113,18 @@ def run_inference(clean_df, horizon='both'):
         out = out.drop(columns=['pred_24h', 'forecast_date_24h'])
     return out.sort_values('risk_score', ascending=False).reset_index(drop=True)
 
+@app.route("/")
+def home():
+    return {
+        "service": "Patrol Forecast v6",
+        "status": "running",
+        "endpoints": [
+            "/health",
+            "/validate",
+            "/predict",
+            "/analytics"
+        ]
+    }
 
 @app.get('/health')
 def health():

@@ -1,3 +1,13 @@
+---
+title: Patrol Forecast V6
+emoji: 🚓
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Patrol Forecast v6 — Flask Inference Service
 
 CSV in → CSV out. Upload a raw violation CSV (recent history); get a per-H3-cell forecast
