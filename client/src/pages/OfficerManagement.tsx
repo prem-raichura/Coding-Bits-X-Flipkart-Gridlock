@@ -331,7 +331,7 @@ export default function OfficerManagement() {
   const [breaches, setBreaches] = useState<GeofenceBreach[] | null>(null)
   const [actionBusy, setActionBusy] = useState<string | null>(null)
 
-  useEffect(() => { document.title = 'Officer Management — NammaFlow' }, [])
+  useEffect(() => { document.title = 'Officer Management — ParkVUE' }, [])
 
   // Fetch tab-specific data whenever the inner tab changes. The first mount is
   // skipped for active/pending (their hooks already fetch on mount) so we don't

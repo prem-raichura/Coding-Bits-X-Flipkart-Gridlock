@@ -818,7 +818,7 @@ function SidePanel({ hotspots, selected, edis, dayView, onSelect, onClose, onAss
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Hotspots() {
-  useEffect(() => { document.title = 'Hotspot Detection — NammaFlow' }, [])
+  useEffect(() => { document.title = 'Hotspot Detection — ParkVUE' }, [])
 
   const locState = useLocation().state as { hotspotId?: string } | null
 

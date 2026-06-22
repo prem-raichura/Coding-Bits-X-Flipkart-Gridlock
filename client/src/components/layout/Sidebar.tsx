@@ -44,7 +44,7 @@ const BOTTOM_NAV: NavItem[] = [
 function HexLogo() {
   return (
     <div className="flex-shrink-0 w-8 h-8">
-      <img src="/logo.png" alt="NammaFlow" className="w-full h-full object-contain select-none" draggable={false} />
+      <img src="/logo.png" alt="ParkVUE" className="w-full h-full object-contain select-none" draggable={false} />
     </div>
   )
 }
@@ -232,7 +232,7 @@ function SidebarInner({
                   transition={{ duration: 0.18 }}
                 >
                   <p className="text-sm font-bold text-gray-900 leading-none whitespace-nowrap">
-                    NammaFlow
+                    ParkVUE
                   </p>
                   <p className="text-[10px] text-gray-400 leading-none mt-0.5 whitespace-nowrap">
                     BTP Admin Portal

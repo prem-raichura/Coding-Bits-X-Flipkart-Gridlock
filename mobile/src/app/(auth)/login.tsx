@@ -60,7 +60,7 @@ export default function LoginScreen() {
                 style={styles.logo}
                 contentFit="contain"
               />
-              <Text style={styles.appName}>NammaFlow</Text>
+              <Text style={styles.appName}>ParkVUE</Text>
               <Text style={styles.appSub}>Keep Bengaluru Moving</Text>
             </View>
 
