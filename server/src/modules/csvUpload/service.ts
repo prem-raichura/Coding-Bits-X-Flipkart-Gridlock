@@ -59,6 +59,50 @@ async function syncStationsFromCsv(buf: Buffer): Promise<void> {
   }
 }
 
+/**
+ * Auto-register new police stations from the analytics bundle. The HF service
+ * already returns per-station centroids ({ name, lat, lon }), so unlike
+ * syncStationsFromCsv this does not re-parse the raw CSV. Never throws —
+ * station sync must not fail a prediction run.
+ */
+async function syncStationsFromBundle(
+  stations: Array<{ name?: string; lat?: number; lon?: number }> | undefined,
+): Promise<void> {
+  try {
+    if (!Array.isArray(stations) || stations.length === 0) return;
+
+    const candidates = new Map<string, { lat: number; lon: number }>();
+    for (const s of stations) {
+      const name = (s.name ?? '').trim();
+      if (SKIP_STATION.has(name.toLowerCase())) continue;
+      const lat = Number(s.lat);
+      const lon = Number(s.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+      if (lat < BLR.latMin || lat > BLR.latMax || lon < BLR.lonMin || lon > BLR.lonMax) continue;
+      candidates.set(name, { lat, lon });
+    }
+    if (candidates.size === 0) return;
+
+    const existing = new Set(
+      (await prisma.station.findMany({ select: { name: true } })).map((s) => s.name),
+    );
+    const toAdd = [...candidates.entries()]
+      .filter(([name]) => !existing.has(name))
+      .map(([name, a]) => ({
+        name,
+        latitude: Number(a.lat.toFixed(6)),
+        longitude: Number(a.lon.toFixed(6)),
+      }));
+
+    if (toAdd.length) {
+      const res = await prisma.station.createMany({ data: toAdd, skipDuplicates: true });
+      console.log(`[csvUpload] auto-added ${res.count} new station(s): ${toAdd.map((s) => s.name).join(', ')}`);
+    }
+  } catch (err) {
+    console.error('[csvUpload] station sync skipped:', err);
+  }
+}
+
 const RISK_MAP: Record<string, RiskLevel> = {
   low: 'low', Low: 'low',
   medium: 'medium', Medium: 'medium',
@@ -83,11 +127,17 @@ interface PredRow {
 }
 
 export async function createRun(file: Express.Multer.File, userId: string) {
+  return createRunMeta(file.originalname ?? 'upload.csv', userId);
+}
+
+/** Create a run record from a filename only — used by the direct-to-HF flow
+ *  where the raw CSV never reaches this backend (only the analytics bundle does). */
+export async function createRunMeta(filename: string, userId: string) {
   return prisma.predictionRun.create({
     data: {
       // No disk on serverless; keep the original name as the record reference.
-      csv_path: file.originalname ?? 'upload.csv',
-      original_filename: file.originalname,
+      csv_path: filename,
+      original_filename: filename,
       uploaded_by: userId,
       model_version: 'v6',
       prediction_window: 'H24',
@@ -97,6 +147,7 @@ export async function createRun(file: Express.Multer.File, userId: string) {
   });
 }
 
+/** Legacy path: backend received the raw CSV, forwards to HF, then persists. */
 export async function process(runId: string, buf: Buffer): Promise<void> {
   const run = await prisma.predictionRun.findUnique({ where: { run_id: runId } });
   if (!run) return;
@@ -104,12 +155,38 @@ export async function process(runId: string, buf: Buffer): Promise<void> {
   await prisma.predictionRun.update({ where: { run_id: runId }, data: { status: 'processing' } });
 
   try {
-
     // Auto-register any new police stations found in this upload.
     await syncStationsFromCsv(buf);
-
     const bundle = await callAnalytics(buf, run.original_filename ?? 'upload.csv');
+    await persistBundle(runId, bundle);
+  } catch (err) {
+    await prisma.predictionRun.update({ where: { run_id: runId }, data: { status: 'failed' } });
+    console.error(`[csvUpload] run ${runId} failed:`, err);
+  }
+}
 
+/** Direct-to-HF path: client uploaded the CSV straight to HF and posts back the
+ *  small analytics bundle, bypassing Vercel's 4.5MB serverless body cap. */
+export async function processFromBundle(runId: string, bundle: Record<string, unknown>): Promise<void> {
+  const run = await prisma.predictionRun.findUnique({ where: { run_id: runId } });
+  if (!run) return;
+
+  await prisma.predictionRun.update({ where: { run_id: runId }, data: { status: 'processing' } });
+
+  try {
+    await syncStationsFromBundle(
+      bundle.stations as Array<{ name?: string; lat?: number; lon?: number }> | undefined,
+    );
+    await persistBundle(runId, bundle);
+  } catch (err) {
+    await prisma.predictionRun.update({ where: { run_id: runId }, data: { status: 'failed' } });
+    console.error(`[csvUpload] run ${runId} failed:`, err);
+  }
+}
+
+/** Persist predictions + analytics from an HF bundle into the DB and mark the
+ *  run done. Throws on failure so callers can flip the run to 'failed'. */
+async function persistBundle(runId: string, bundle: Record<string, unknown>): Promise<void> {
     const predictions = (bundle.predictions as PredRow[]) ?? [];
     const hotspots    = (bundle.hotspots as Array<{ id: string }>) ?? [];
 
@@ -180,10 +257,6 @@ export async function process(runId: string, buf: Buffer): Promise<void> {
       where: { run_id: runId },
       data: { status: 'done', run_at: new Date(), rows_in: rowsIn },
     });
-  } catch (err) {
-    await prisma.predictionRun.update({ where: { run_id: runId }, data: { status: 'failed' } });
-    console.error(`[csvUpload] run ${runId} failed:`, err);
-  }
 }
 
 export async function history() {

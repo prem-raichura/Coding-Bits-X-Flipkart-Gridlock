@@ -32,6 +32,11 @@ function normalizeBaseUrl(raw: string): string {
 
 export const BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_URL || '')
 
+// HF Flask analytics service. The browser uploads large CSVs straight here
+// (512MB cap) to bypass the Vercel backend's 4.5MB serverless body limit.
+// Use the API host (*.hf.space), not the Space web page (huggingface.co/spaces/...).
+export const PY_URL = (import.meta.env.VITE_PY_URL || 'https://premraichura7-nammaflow.hf.space').replace(/\/+$/, '')
+
 export const ENDPOINTS = {
   hotspots:        '/hotspots',
   stations:        '/stations',

@@ -1,4 +1,4 @@
-import { BASE_URL } from '../config/api'
+import { BASE_URL, PY_URL } from '../config/api'
 
 interface RequestOptions {
   method?: string
@@ -129,16 +129,37 @@ export const updateProfile = (body: { name?: string; email?: string; number?: st
   request<import('./auth').User>('/users/me', { method: 'PATCH', body })
 
 export async function uploadCsv(file: File, token: string | null): Promise<{ run_id: string; status: string }> {
+  // Step 1: upload the raw CSV straight to the HF analytics service. This bypasses
+  // the Vercel backend's 4.5MB serverless body cap (HF accepts up to 512MB) and
+  // returns a small aggregated bundle (per-H3-cell predictions + analytics).
   const fd = new FormData()
   fd.append('file', file)
 
-  const headers: Record<string, string> = {}
+  let analyticsRes: Response
+  try {
+    analyticsRes = await fetch(`${PY_URL}/analytics`, { method: 'POST', body: fd })
+  } catch (e) {
+    throw new Error(`Analytics service unreachable: ${e instanceof Error ? e.message : 'network error'}`)
+  }
+
+  const analytics = await analyticsRes.json().catch(() => ({})) as {
+    ok?: boolean
+    bundle?: Record<string, unknown>
+    errors?: string[]
+  }
+  if (!analyticsRes.ok || !analytics.ok || !analytics.bundle) {
+    throw new Error(analytics.errors?.join('; ') ?? `Analytics failed (${analyticsRes.status})`)
+  }
+
+  // Step 2: send the small bundle to the backend to persist (predictions, analytics,
+  // station auto-sync). JSON body stays under Vercel's 4.5MB ingress limit.
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE_URL}/csv`, {
+  const res = await fetch(`${BASE_URL}/csv/store`, {
     method: 'POST',
     headers,
-    body: fd,
+    body: JSON.stringify({ original_filename: file.name, bundle: analytics.bundle }),
   })
 
   const json = await res.json().catch(() => ({}))
