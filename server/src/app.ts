@@ -54,7 +54,9 @@ const corsMiddleware = cors({
 app.use(helmet());
 app.use(corsMiddleware); // also answers OPTIONS preflight automatically
 app.use(morgan('dev'));
-app.use(express.json());
+// 4mb (default is 100kb) to fit the HF analytics bundle posted to /api/csv/store,
+// while staying under Vercel's 4.5MB serverless ingress limit.
+app.use(express.json({ limit: '4mb' }));
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
