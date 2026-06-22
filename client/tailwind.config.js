@@ -1,5 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  // 'class' (not 'media'): dark styles apply only when a `.dark` class is present.
+  // We never add it, so the app is always light regardless of OS preference.
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
