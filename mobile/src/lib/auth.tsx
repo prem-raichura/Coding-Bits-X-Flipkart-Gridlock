@@ -110,10 +110,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const changePassword = useCallback(async (newPassword: string, currentPassword?: string) => {
+    // Fall back to stored token if the in-memory one is missing (e.g. screen
+    // reached before auth state hydrated). Avoids a spurious 401 on submit.
+    const authToken = token ?? (await storage.get(TOKEN_KEY));
+    if (!authToken) throw new Error('Your session has expired. Please log in again.');
     await request('/auth/change-password', {
       method: 'POST',
       body: { new_password: newPassword, current_password: currentPassword },
-      token,
+      token: authToken,
     });
     // Clear the first-login flag locally so guards stop redirecting.
     setUser((prev) => {

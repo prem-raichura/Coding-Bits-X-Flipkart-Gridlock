@@ -44,7 +44,11 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
   const json = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error((json as { error?: string }).error ?? `Request failed (${res.status})`);
+    const serverMsg = (json as { error?: string }).error ?? `Request failed (${res.status})`;
+    if (res.status === 401) {
+      throw new Error(`${serverMsg} [${res.status}, auth=${opts.token ? 'sent' : 'MISSING'}]`);
+    }
+    throw new Error(serverMsg);
   }
 
   return json as T;

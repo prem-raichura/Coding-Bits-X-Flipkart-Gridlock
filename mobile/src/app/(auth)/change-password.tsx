@@ -10,9 +10,14 @@ import { useAuth } from '@/lib/auth';
 import { colors, gradients, radius, spacing, type } from '@/lib/theme';
 
 export default function ChangePasswordScreen() {
-  const { user, changePassword } = useAuth();
+  const { user, changePassword, logout } = useAuth();
   const router = useRouter();
   const forced = !!user?.must_change_password;
+
+  async function handleLogout() {
+    await logout();
+    router.replace('/(auth)/login');
+  }
 
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -111,6 +116,11 @@ export default function ChangePasswordScreen() {
 
               <Button title="Update password" icon="checkmark-outline" onPress={handleSubmit} loading={loading}
                 style={{ marginTop: spacing.xs }} />
+
+              <Pressable onPress={handleLogout} style={styles.logout} hitSlop={8}>
+                <Ionicons name="log-out-outline" size={18} color={colors.textMuted} />
+                <Text style={styles.logoutText}>Log out</Text>
+              </Pressable>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -133,4 +143,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm, padding: spacing.sm, marginBottom: spacing.sm,
   },
   errorText: { ...type.caption, color: colors.risk.critical, flex: 1 },
+  logout: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    marginTop: spacing.md, paddingVertical: spacing.sm,
+  },
+  logoutText: { ...type.body, color: colors.textMuted, fontWeight: '600' },
 });
