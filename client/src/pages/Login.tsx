@@ -25,151 +25,203 @@ function HexLogo({ size = 44 }: { size?: number }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LEFT PANEL DECORATIVE ELEMENTS
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRAFFIC BACKGROUND — illegal parking → congestion → hotspot scene
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MINI_HEXES = [
-  { w: 52, x: '8%',  y: '12%', delay: 0,   opacity: 0.18 },
-  { w: 36, x: '78%', y: '8%',  delay: 0.5, opacity: 0.12 },
-  { w: 68, x: '82%', y: '30%', delay: 1.0, opacity: 0.10 },
-  { w: 44, x: '5%',  y: '55%', delay: 1.4, opacity: 0.14 },
-  { w: 58, x: '70%', y: '68%', delay: 0.7, opacity: 0.12 },
-  { w: 32, x: '88%', y: '82%', delay: 1.8, opacity: 0.09 },
-  { w: 48, x: '20%', y: '80%', delay: 0.3, opacity: 0.13 },
-  { w: 40, x: '55%', y: '20%', delay: 1.1, opacity: 0.10 },
-]
-
-function FloatingHex({ w, x, y, delay, opacity }: typeof MINI_HEXES[number]) {
-  const hh = Math.round(w * 1.16)
+function TrafficMapFull() {
   return (
-    <motion.div className="absolute pointer-events-none" style={{ left: x, top: y }}
-      animate={{ y: [0, -8, 0], rotate: [0, 3, -3, 0] }}
-      transition={{ duration: 6 + delay, repeat: Infinity, ease: 'easeInOut', delay }}>
-      <svg width={w} height={hh} viewBox="0 0 36 42" fill="none">
-        <path d="M18 2L33.59 11V29L18 38L2.41 29V11L18 2Z"
-          fill="rgba(30,58,138,0.05)"
-          stroke={`rgba(6,182,212,${opacity})`}
-          strokeWidth="1" />
+    <div className="absolute inset-0 overflow-hidden">
+
+      {/* ── Road infrastructure SVG (viewBox 500×600, fills panel exactly) ── */}
+      <svg viewBox="0 0 500 600" className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+        {/* Vertical roads */}
+        <rect x="60"  y="0" width="28" height="600" fill="rgba(30,58,138,0.10)" />
+        <rect x="408" y="0" width="28" height="600" fill="rgba(30,58,138,0.10)" />
+        <line x1="60"  y1="0" x2="60"  y2="600" stroke="rgba(30,58,138,0.22)" strokeWidth="1.5"/>
+        <line x1="88"  y1="0" x2="88"  y2="600" stroke="rgba(30,58,138,0.22)" strokeWidth="1.5"/>
+        <line x1="408" y1="0" x2="408" y2="600" stroke="rgba(30,58,138,0.22)" strokeWidth="1.5"/>
+        <line x1="436" y1="0" x2="436" y2="600" stroke="rgba(30,58,138,0.22)" strokeWidth="1.5"/>
+        <line x1="74"  y1="0" x2="74"  y2="600" stroke="rgba(255,255,255,0.52)" strokeWidth="1" strokeDasharray="12,10"/>
+        <line x1="422" y1="0" x2="422" y2="600" stroke="rgba(255,255,255,0.52)" strokeWidth="1" strokeDasharray="12,10"/>
+
+        {/* Main horizontal road — MG Road (congested) */}
+        <rect x="0" y="220" width="500" height="50" fill="rgba(30,58,138,0.11)" />
+        <line x1="0" y1="220" x2="500" y2="220" stroke="rgba(30,58,138,0.28)" strokeWidth="2"/>
+        <line x1="0" y1="270" x2="500" y2="270" stroke="rgba(30,58,138,0.28)" strokeWidth="2"/>
+        <line x1="0" y1="245" x2="500" y2="245" stroke="rgba(255,255,255,0.60)" strokeWidth="1.2" strokeDasharray="14,10"/>
+
+        {/* Secondary horizontal road — Outer Ring Road */}
+        <rect x="0" y="455" width="500" height="40" fill="rgba(30,58,138,0.09)" />
+        <line x1="0" y1="455" x2="500" y2="455" stroke="rgba(30,58,138,0.22)" strokeWidth="1.5"/>
+        <line x1="0" y1="495" x2="500" y2="495" stroke="rgba(30,58,138,0.22)" strokeWidth="1.5"/>
+        <line x1="0" y1="475" x2="500" y2="475" stroke="rgba(255,255,255,0.48)" strokeWidth="1" strokeDasharray="10,9"/>
+
+        {/* Intersection highlights */}
+        <rect x="60"  y="220" width="28" height="50" fill="rgba(6,182,212,0.09)" />
+        <rect x="408" y="220" width="28" height="50" fill="rgba(6,182,212,0.09)" />
+        <rect x="60"  y="455" width="28" height="40" fill="rgba(6,182,212,0.07)" />
+        <rect x="408" y="455" width="28" height="40" fill="rgba(6,182,212,0.07)" />
+
+        {/* ── ILLEGALLY PARKED VEHICLE — blocks upper lane of MG Road ── */}
+        <rect x="190" y="222" width="54" height="21" fill="rgba(239,68,68,0.80)" stroke="rgba(220,38,38,1)" strokeWidth="1.5" rx="3.5"/>
+        <rect x="200" y="226" width="14" height="7" fill="rgba(254,226,226,0.68)" rx="1.5"/>
+        <rect x="221" y="226" width="14" height="7" fill="rgba(254,226,226,0.68)" rx="1.5"/>
+        <circle cx="200" cy="243" r="4" fill="rgba(80,0,0,0.55)" stroke="rgba(239,68,68,0.80)" strokeWidth="1"/>
+        <circle cx="236" cy="243" r="4" fill="rgba(80,0,0,0.55)" stroke="rgba(239,68,68,0.80)" strokeWidth="1"/>
+        {/* Warning triangles flanking the parked car */}
+        <path d="M 178 237 L 183 228 L 188 237 Z" fill="#fbbf24" stroke="rgba(180,83,9,0.55)" strokeWidth="0.8"/>
+        <path d="M 252 237 L 257 228 L 262 237 Z" fill="#fbbf24" stroke="rgba(180,83,9,0.55)" strokeWidth="0.8"/>
+        {/* "ILLEGALLY PARKED" banner */}
+        <rect x="179" y="207" width="82" height="12" fill="rgba(220,38,38,0.93)" rx="2.5"/>
+        <text x="220" y="216.5" fontSize="6.8" fill="white" fontWeight="800" textAnchor="middle" fontFamily="system-ui,sans-serif" letterSpacing="0.04em">ILLEGALLY PARKED</text>
+
+        {/* Congestion zone annotation */}
+        <text x="220" y="288" fontSize="7" fill="rgba(239,68,68,0.68)" fontWeight="700" textAnchor="middle" fontFamily="system-ui,sans-serif" letterSpacing="0.06em">▼ CONGESTION ZONE</text>
+
+        {/* Road name labels */}
+        <text x="4" y="215" fontSize="7.5" fill="rgba(30,58,138,0.50)" fontFamily="system-ui,sans-serif" fontWeight="600">MG Road</text>
+        <text x="4" y="450" fontSize="7.5" fill="rgba(30,58,138,0.50)" fontFamily="system-ui,sans-serif" fontWeight="600">Outer Ring Road</text>
+        <text x="62" y="14" fontSize="7" fill="rgba(30,58,138,0.45)" fontFamily="system-ui,sans-serif">Hosur Rd</text>
+        <text x="410" y="14" fontSize="7" fill="rgba(30,58,138,0.45)" fontFamily="system-ui,sans-serif">Brigade Rd</text>
+
+        {/* Minor hotspot markers at intersections */}
+        <circle cx="74"  cy="232" r="5.5" fill="rgba(249,115,22,0.18)" stroke="rgba(249,115,22,0.52)" strokeWidth="1"/>
+        <circle cx="74"  cy="232" r="2.2" fill="rgba(249,115,22,0.78)"/>
+        <circle cx="422" cy="475" r="4.5" fill="rgba(249,115,22,0.14)" stroke="rgba(249,115,22,0.42)" strokeWidth="0.8"/>
+        <circle cx="422" cy="475" r="1.8" fill="rgba(249,115,22,0.65)"/>
       </svg>
-    </motion.div>
-  )
-}
 
-function AnimatedStreak({ x1, y1, x2, y2, delay }: {
-  x1: string; y1: string; x2: string; y2: string; delay: number
-}) {
-  return (
-    <motion.div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-      <motion.div className="absolute rounded-full"
-        style={{
-          left: x1, top: y1, width: 1, height: 1,
-          background: 'rgba(6,182,212,0.8)',
-          boxShadow: '0 0 6px 2px rgba(6,182,212,0.5)',
-        }}
-        animate={{ left: [x1, x2], top: [y1, y2], opacity: [0, 1, 1, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay, repeatDelay: 4 }} />
-    </motion.div>
+      {/* ── Pulsing hotspot rings centered on the parked/blocked zone ── */}
+      {/* Parked car at SVG x=217/500=43%, y=232/600=39% */}
+      <motion.div className="absolute rounded-full pointer-events-none"
+        style={{ top: '39%', left: '43%', width: 130, height: 130, marginTop: -65, marginLeft: -65,
+          background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.32)' }}
+        animate={{ scale: [1, 1.38, 1], opacity: [0.65, 0.15, 0.65] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }} />
+      <motion.div className="absolute rounded-full pointer-events-none"
+        style={{ top: '39%', left: '43%', width: 76, height: 76, marginTop: -38, marginLeft: -38,
+          background: 'rgba(239,68,68,0.14)', border: '1.5px solid rgba(239,68,68,0.50)' }}
+        animate={{ scale: [1, 1.28, 1], opacity: [0.75, 0.25, 0.75] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }} />
+      <motion.div className="absolute rounded-full pointer-events-none"
+        style={{ top: '39%', left: '43%', width: 28, height: 28, marginTop: -14, marginLeft: -14,
+          background: 'rgba(239,68,68,0.68)' }}
+        animate={{ opacity: [1, 0.40, 1] }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }} />
+
+      {/* ── CONGESTED VEHICLES — upper lane, piling up before parked car ── */}
+      {/* easeOut = rush in then decelerate to near-stop — simulates traffic queue */}
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['-5%', '37%'] }} transition={{ duration: 18, ease: 'easeOut', repeat: Infinity, repeatDelay: 1, delay: 0    }}><div style={{ width: 15, height: 8, background: '#f59e0b', borderRadius: 3, boxShadow: '0 0 7px rgba(245,158,11,0.92)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['-5%', '37%'] }} transition={{ duration: 18, ease: 'easeOut', repeat: Infinity, repeatDelay: 1, delay: 1.8  }}><div style={{ width: 13, height: 8, background: '#f97316', borderRadius: 3, boxShadow: '0 0 6px rgba(249,115,22,0.88)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['-5%', '37%'] }} transition={{ duration: 18, ease: 'easeOut', repeat: Infinity, repeatDelay: 1, delay: 3.6  }}><div style={{ width: 16, height: 8, background: '#fbbf24', borderRadius: 3, boxShadow: '0 0 6px rgba(251,191,36,0.88)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['-5%', '37%'] }} transition={{ duration: 18, ease: 'easeOut', repeat: Infinity, repeatDelay: 1, delay: 5.4  }}><div style={{ width: 14, height: 8, background: '#ef4444', borderRadius: 3, boxShadow: '0 0 7px rgba(239,68,68,0.88)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['-5%', '37%'] }} transition={{ duration: 18, ease: 'easeOut', repeat: Infinity, repeatDelay: 1, delay: 7.2  }}><div style={{ width: 15, height: 8, background: '#f59e0b', borderRadius: 3, boxShadow: '0 0 6px rgba(245,158,11,0.82)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['-5%', '37%'] }} transition={{ duration: 18, ease: 'easeOut', repeat: Infinity, repeatDelay: 1, delay: 9.0  }}><div style={{ width: 13, height: 8, background: '#f97316', borderRadius: 3, boxShadow: '0 0 6px rgba(249,115,22,0.82)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['-5%', '37%'] }} transition={{ duration: 18, ease: 'easeOut', repeat: Infinity, repeatDelay: 1, delay: 10.8 }}><div style={{ width: 16, height: 8, background: '#fbbf24', borderRadius: 3, boxShadow: '0 0 6px rgba(251,191,36,0.82)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['-5%', '37%'] }} transition={{ duration: 18, ease: 'easeOut', repeat: Infinity, repeatDelay: 1, delay: 12.6 }}><div style={{ width: 14, height: 8, background: '#ef4444', borderRadius: 3, boxShadow: '0 0 6px rgba(239,68,68,0.82)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['-5%', '37%'] }} transition={{ duration: 18, ease: 'easeOut', repeat: Infinity, repeatDelay: 1, delay: 14.4 }}><div style={{ width: 15, height: 8, background: '#f59e0b', borderRadius: 3, boxShadow: '0 0 6px rgba(245,158,11,0.78)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['-5%', '37%'] }} transition={{ duration: 18, ease: 'easeOut', repeat: Infinity, repeatDelay: 1, delay: 16.2 }}><div style={{ width: 13, height: 8, background: '#f97316', borderRadius: 3, boxShadow: '0 0 6px rgba(249,115,22,0.78)' }} /></motion.div>
+
+      {/* ── FREE FLOW after blocked zone — upper lane, right of parked car ── */}
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['51%', '108%'] }} transition={{ duration: 6, ease: 'linear', repeat: Infinity, delay: 0   }}><div style={{ width: 14, height: 8, background: '#06b6d4', borderRadius: 3, boxShadow: '0 0 7px rgba(6,182,212,0.90)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['51%', '108%'] }} transition={{ duration: 6, ease: 'linear', repeat: Infinity, delay: 2.5 }}><div style={{ width: 16, height: 8, background: '#0ea5e9', borderRadius: 3, boxShadow: '0 0 6px rgba(14,165,233,0.88)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '37%' }} animate={{ left: ['51%', '108%'] }} transition={{ duration: 6, ease: 'linear', repeat: Infinity, delay: 4.8 }}><div style={{ width: 13, height: 8, background: '#38bdf8', borderRadius: 3, boxShadow: '0 0 6px rgba(56,189,248,0.88)' }} /></motion.div>
+
+      {/* ── LOWER LANE — opposite direction, fully unaffected ── */}
+      <motion.div className="absolute" style={{ top: '42%' }} animate={{ left: ['108%', '-5%'] }} transition={{ duration: 9,  ease: 'linear', repeat: Infinity, delay: 0   }}><div style={{ width: 14, height: 8, background: '#3b82f6', borderRadius: 3, boxShadow: '0 0 6px rgba(59,130,246,0.85)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '42%' }} animate={{ left: ['108%', '-5%'] }} transition={{ duration: 9,  ease: 'linear', repeat: Infinity, delay: 3   }}><div style={{ width: 16, height: 8, background: '#2563eb', borderRadius: 3, boxShadow: '0 0 5px rgba(37,99,235,0.82)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '42%' }} animate={{ left: ['108%', '-5%'] }} transition={{ duration: 9,  ease: 'linear', repeat: Infinity, delay: 6   }}><div style={{ width: 13, height: 8, background: '#1d4ed8', borderRadius: 3, boxShadow: '0 0 5px rgba(29,78,216,0.80)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '43%' }} animate={{ left: ['108%', '-5%'] }} transition={{ duration: 11, ease: 'linear', repeat: Infinity, delay: 1.5 }}><div style={{ width: 18, height: 8, background: '#6366f1', borderRadius: 3, boxShadow: '0 0 5px rgba(99,102,241,0.78)' }} /></motion.div>
+
+      {/* ── SECONDARY ROAD (~77%) — both directions, normal flow ── */}
+      <motion.div className="absolute" style={{ top: '77%' }} animate={{ left: ['-5%', '108%'] }} transition={{ duration: 8,  ease: 'linear', repeat: Infinity, delay: 0   }}><div style={{ width: 14, height: 7, background: '#06b6d4', borderRadius: 3, boxShadow: '0 0 5px rgba(6,182,212,0.82)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '77%' }} animate={{ left: ['-5%', '108%'] }} transition={{ duration: 8,  ease: 'linear', repeat: Infinity, delay: 3.5 }}><div style={{ width: 16, height: 7, background: '#0ea5e9', borderRadius: 3, boxShadow: '0 0 5px rgba(14,165,233,0.78)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '77%' }} animate={{ left: ['-5%', '108%'] }} transition={{ duration: 8,  ease: 'linear', repeat: Infinity, delay: 6.5 }}><div style={{ width: 13, height: 7, background: '#38bdf8', borderRadius: 3, boxShadow: '0 0 5px rgba(56,189,248,0.78)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '80%' }} animate={{ left: ['108%', '-5%'] }} transition={{ duration: 10, ease: 'linear', repeat: Infinity, delay: 0   }}><div style={{ width: 14, height: 7, background: '#3b82f6', borderRadius: 3, boxShadow: '0 0 5px rgba(59,130,246,0.80)' }} /></motion.div>
+      <motion.div className="absolute" style={{ top: '80%' }} animate={{ left: ['108%', '-5%'] }} transition={{ duration: 10, ease: 'linear', repeat: Infinity, delay: 4.5 }}><div style={{ width: 16, height: 7, background: '#2563eb', borderRadius: 3, boxShadow: '0 0 4px rgba(37,99,235,0.78)' }} /></motion.div>
+
+      {/* ── VERTICAL ROAD 1 (left ~13-16%) ── */}
+      <motion.div className="absolute" style={{ left: '13%' }} animate={{ top: ['-5%', '108%'] }} transition={{ duration: 11, ease: 'linear', repeat: Infinity, delay: 2   }}><div style={{ width: 7, height: 14, background: '#06b6d4', borderRadius: 3, boxShadow: '0 0 5px rgba(6,182,212,0.80)' }} /></motion.div>
+      <motion.div className="absolute" style={{ left: '13%' }} animate={{ top: ['-5%', '108%'] }} transition={{ duration: 11, ease: 'linear', repeat: Infinity, delay: 8   }}><div style={{ width: 7, height: 13, background: '#38bdf8', borderRadius: 3, boxShadow: '0 0 4px rgba(56,189,248,0.75)' }} /></motion.div>
+      <motion.div className="absolute" style={{ left: '16%' }} animate={{ top: ['108%', '-5%'] }} transition={{ duration: 13, ease: 'linear', repeat: Infinity, delay: 4   }}><div style={{ width: 7, height: 14, background: '#3b82f6', borderRadius: 3, boxShadow: '0 0 4px rgba(59,130,246,0.78)' }} /></motion.div>
+
+      {/* ── VERTICAL ROAD 2 (right ~82-85%) ── */}
+      <motion.div className="absolute" style={{ left: '82%' }} animate={{ top: ['-5%', '108%'] }} transition={{ duration: 12, ease: 'linear', repeat: Infinity, delay: 0   }}><div style={{ width: 7, height: 14, background: '#0ea5e9', borderRadius: 3, boxShadow: '0 0 5px rgba(14,165,233,0.80)' }} /></motion.div>
+      <motion.div className="absolute" style={{ left: '82%' }} animate={{ top: ['-5%', '108%'] }} transition={{ duration: 12, ease: 'linear', repeat: Infinity, delay: 6.5 }}><div style={{ width: 7, height: 13, background: '#06b6d4', borderRadius: 3, boxShadow: '0 0 4px rgba(6,182,212,0.78)' }} /></motion.div>
+      <motion.div className="absolute" style={{ left: '85%' }} animate={{ top: ['108%', '-5%'] }} transition={{ duration: 14, ease: 'linear', repeat: Infinity, delay: 3   }}><div style={{ width: 7, height: 14, background: '#2563eb', borderRadius: 3, boxShadow: '0 0 4px rgba(37,99,235,0.78)' }} /></motion.div>
+
+      {/* Scan sweep */}
+      <motion.div className="absolute inset-0 pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(6,182,212,0.06), transparent)', width: '35%' }}
+        animate={{ left: ['-35%', '135%'] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'linear', repeatDelay: 3 }} />
+
+      {/* Live indicator */}
+      <div style={{ position: 'absolute', top: 10, right: 12, display: 'flex', alignItems: 'center', gap: 4, zIndex: 10 }}>
+        <motion.div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.1, repeat: Infinity }} />
+        <span style={{ fontSize: 8, fontWeight: 700, color: '#166534', letterSpacing: '0.08em' }}>LIVE</span>
+      </div>
+    </div>
   )
 }
 
 function LeftPanel() {
   const panelBg = 'linear-gradient(160deg, #dbeafe 0%, #bfdbfe 35%, #eff6ff 70%, #f0f9ff 100%)'
-  const gridStroke = 'rgba(30,58,138,0.07)'
-  const radialGlow = 'radial-gradient(ellipse at 50% 45%, rgba(30,58,138,0.12) 0%, transparent 65%)'
 
   return (
     <motion.div initial={{ x: -60, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="hidden lg:flex relative w-1/2 flex-col items-center justify-center overflow-hidden"
+      className="hidden lg:block relative w-1/2 overflow-hidden"
       style={{ background: panelBg }}>
 
-      {/* Grid pattern */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <svg width="100%" height="100%">
-          <defs>
-            <pattern id="lg-grid" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
-              <path d="M 48 0 L 0 0 0 48" fill="none" stroke={gridStroke} strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#lg-grid)" />
-        </svg>
-      </div>
+      {/* Accent bar — top */}
+      <div className="absolute top-0 left-0 right-0 h-[3px] z-30"
+        style={{ background: 'linear-gradient(90deg, #1e3a8a, #06b6d4, #1e3a8a)' }} />
 
-      {/* Radial glow */}
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ background: radialGlow }} aria-hidden="true" />
+      {/* ── BACKGROUND: full-panel animated traffic scene ── */}
+      <TrafficMapFull />
 
-      {/* Mini hexagons */}
-      {MINI_HEXES.map((h, i) => <FloatingHex key={i} {...h} />)}
+      {/* ── Soft center glow so brand text stays readable ── */}
+      <div className="absolute inset-0 pointer-events-none z-10"
+        style={{ background: 'radial-gradient(ellipse 72% 44% at 50% 48%, rgba(239,246,255,0.82) 0%, rgba(219,234,254,0.32) 58%, transparent 82%)' }} />
 
-      {/* Animated streaks */}
-      <AnimatedStreak x1="20%" y1="10%" x2="75%" y2="45%" delay={0}   />
-      <AnimatedStreak x1="65%" y1="75%" x2="15%" y2="40%" delay={2.5} />
-      <AnimatedStreak x1="50%" y1="20%" x2="80%" y2="70%" delay={5}   />
-
-      {/* Brand gradient bar — top */}
-      <div className="absolute top-0 left-0 right-0 h-[3px]"
-        style={{ background: 'linear-gradient(90deg, #1e3a8a, #06b6d4, #1e3a8a)' }}
-        aria-hidden="true" />
-
-      {/* Center content */}
-      <div className="relative z-10 flex flex-col items-center text-center px-12 select-none">
+      {/* ── FOREGROUND: brand in lower half — illegal parking scene visible above ── */}
+      <div className="absolute z-20 select-none"
+        style={{ top: '50%', left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
         <motion.div
           animate={{
             filter: [
-              'drop-shadow(0 0 8px rgba(6,182,212,0.5))',
-              'drop-shadow(0 0 18px rgba(6,182,212,0.8))',
-              'drop-shadow(0 0 8px rgba(6,182,212,0.5))',
+              'drop-shadow(0 0 10px rgba(6,182,212,0.55))',
+              'drop-shadow(0 0 28px rgba(6,182,212,0.95))',
+              'drop-shadow(0 0 10px rgba(6,182,212,0.55))',
             ],
           }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          className="mb-5">
-          <HexLogo size={56} />
+          style={{ marginBottom: 18 }}>
+          <HexLogo size={76} />
         </motion.div>
 
-        <h1 className="text-4xl font-black tracking-tight mb-3"
-          style={{
-            background: 'linear-gradient(90deg, #60a5fa, #06b6d4)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          }}>
-          ParkVUE
+        <h1 style={{
+          fontSize: 52, fontWeight: 900, letterSpacing: '-0.025em', lineHeight: 1, margin: 0,
+          background: 'linear-gradient(90deg, #1e3a8a 0%, #0891b2 50%, #1d4ed8 100%)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+          filter: 'drop-shadow(0 2px 16px rgba(6,182,212,0.38))',
+          marginBottom: 12,
+        }}>
+          NammaFlow
         </h1>
 
-        <p className="text-sm font-medium uppercase tracking-widest mb-8 transition-colors duration-300 text-blue-600">
-          Keep Bengaluru Moving        </p>
-
-        <div className="w-12 h-[2px] rounded-full mb-8"
-          style={{ background: 'linear-gradient(90deg, #1e3a8a, #06b6d4)' }} />
-
-        <p className="text-base leading-relaxed max-w-[320px] transition-colors duration-300 text-gray-700">
-          Welcome back. Bengaluru's enforcement intelligence awaits.
+        <p style={{
+          fontSize: 11, fontWeight: 800, letterSpacing: '0.22em',
+          textTransform: 'uppercase', color: '#0e7490', margin: 0,
+          textShadow: '0 1px 8px rgba(239,246,255,0.95)',
+        }}>
+          Keep Bengaluru Moving
         </p>
-
-        {/* Stat pills */}
-        <div className="mt-12 flex flex-col gap-3 w-full max-w-[280px]">
-          {[
-            { label: '298,450+ violations analyzed' },
-            { label: '54 stations networked'         },
-            { label: 'Real-time anomaly detection'   },
-          ].map(({ label }, i) => (
-            <motion.div key={label}
-              initial={{ opacity: 0, x: -16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.5 + i * 0.12 }}
-              className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all duration-300"
-              style={{
-                background: 'rgba(255,255,255,0.75)',
-                border: '1px solid rgba(6,182,212,0.30)',
-              }}>
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ background: '#06b6d4', boxShadow: '0 0 5px rgba(6,182,212,0.7)' }} />
-              <span className="text-xs transition-colors duration-300 text-gray-700">
-                {label}
-              </span>
-            </motion.div>
-          ))}
-        </div>
       </div>
+
     </motion.div>
   )
 }

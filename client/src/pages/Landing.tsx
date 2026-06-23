@@ -362,8 +362,11 @@ function HeroSection() {
           </motion.button>
           <motion.button onClick={() => alert('Mobile app coming soon')}
             whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 border border-gray-300 text-gray-600 hover:border-brand-500/50 hover:text-brand-700 bg-white/60 hover:bg-white">
-            Download Mobile App
+            className="inline-flex items-center gap-2 px-7 py-3 rounded-xl font-semibold text-sm transition-all duration-200 border border-gray-300 text-gray-600 hover:border-brand-500/50 hover:text-brand-700 bg-white/60 hover:bg-white">
+            <div className="flex flex-col items-start leading-tight">
+              <span>Download Mobile App</span>
+              <span className="text-[10px] font-medium tracking-wide" style={{ opacity: 0.55 }}>For Officers Only</span>
+            </div>
           </motion.button>
         </motion.div>
       </div>
@@ -453,9 +456,6 @@ function StatsSection() {
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
             Bengaluru's enforcement backbone
           </h2>
-          <p className="mt-3 text-sm max-w-md mx-auto text-gray-500">
-            Six months of real enforcement data powering every prediction and deployment decision.
-          </p>
         </motion.div>
 
         {/* Stat cards */}
@@ -1002,7 +1002,7 @@ function MobileAppSection() {
             className="mt-3 text-sm max-w-lg mx-auto leading-relaxed text-gray-600"
           >
             A dedicated mobile app built for field officers — receive assignments, patrol zones, validate
-            completion, and stay tracked — all without leaving the app.
+            completion, and stay tracked.
           </motion.p>
         </div>
 
@@ -1064,8 +1064,7 @@ function MobileAppSection() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FOOTER_COLS = [
-  { heading: 'Product',   links: ['Features', 'Analytics', 'Hotspot Map', 'API'] },
-  { heading: 'Company',   links: ['About', 'Team', 'BTP Partnership', 'Contact'] },
+  { heading: 'Company',   links: ['About', 'Team'] },
   { heading: 'Resources', links: ['Documentation', 'GitHub', 'Support', 'Privacy'] },
 ]
 const SOCIAL_LINKS = [
@@ -1078,7 +1077,7 @@ function Footer() {
   return (
     <footer className="border-t py-14 px-4 sm:px-6 bg-gray-50 border-gray-200">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-12">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
               <HexLogo size={26} />
@@ -1115,7 +1114,7 @@ function Footer() {
         </div>
         <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-gray-200">
           <p className="text-xs text-gray-400">
-            © 2024 ParkVUE. Built for Bengaluru Traffic Police.
+            © 2026 NammaFlow. Built for Bengaluru Traffic Police.
           </p>
           <p className="text-xs text-gray-400">
             Keep Bengaluru Moving
@@ -1137,8 +1136,8 @@ export default function Landing() {
     <div className="bg-[#eef5ff]">
       <Navbar />
       <HeroSection />
-      <StatsSection />
       <ProblemSection />
+      <StatsSection />
       <MobileAppSection />
       <Footer />
     </div>
