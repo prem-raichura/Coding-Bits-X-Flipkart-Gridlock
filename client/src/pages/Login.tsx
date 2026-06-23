@@ -210,7 +210,7 @@ function LeftPanel() {
           filter: 'drop-shadow(0 2px 16px rgba(6,182,212,0.38))',
           marginBottom: 12,
         }}>
-          NammaFlow
+          ParkVUE
         </h1>
 
         <p style={{
