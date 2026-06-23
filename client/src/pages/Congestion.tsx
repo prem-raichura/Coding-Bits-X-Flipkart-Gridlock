@@ -669,7 +669,7 @@ export function InsightsPanel() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Congestion() {
-  useEffect(() => { document.title = 'Congestion Impact — NammaFlow' }, [])
+  useEffect(() => { document.title = 'Congestion Impact — ParkVUE' }, [])
 
   const { data: hotspots, loading } = useHotspots()
 

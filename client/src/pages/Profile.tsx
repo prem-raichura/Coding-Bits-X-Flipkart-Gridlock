@@ -123,7 +123,7 @@ function Avatar({ initials, size = 96 }: { initials: string; size?: number }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Profile() {
-  useEffect(() => { document.title = 'My Profile — NammaFlow' }, [])
+  useEffect(() => { document.title = 'My Profile — ParkVUE' }, [])
 
   const { user, updateUser } = useAuth()
   const fetchedRef = useRef(false)

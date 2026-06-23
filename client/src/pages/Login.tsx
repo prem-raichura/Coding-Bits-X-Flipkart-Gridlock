@@ -17,7 +17,7 @@ function HexLogo({ size = 44 }: { size?: number }) {
       src="/logo.png"
       width={size}
       height={size}
-      alt="NammaFlow"
+      alt="ParkVUE"
       className="object-contain select-none"
       draggable={false}
     />
@@ -238,7 +238,7 @@ function MobileBanner() {
         <HexLogo size={30} />
         <div>
           <p className="font-bold text-base leading-none transition-colors duration-300 text-gray-900">
-            NammaFlow
+            ParkVUE
           </p>
           <p className="text-[10px] leading-none mt-0.5 transition-colors duration-300 text-gray-600">
             Keep Bengaluru Moving          </p>
@@ -342,7 +342,7 @@ function LoginForm() {
         )}>
           <div className="mb-7">
             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-              Sign in to NammaFlow
+              Sign in to ParkVUE
             </h2>
             <p className="mt-1.5 text-sm text-gray-500">
               Access the admin command center
@@ -414,7 +414,7 @@ function LoginForm() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Login() {
-  useEffect(() => { document.title = 'Sign In — NammaFlow' }, [])
+  useEffect(() => { document.title = 'Sign In — ParkVUE' }, [])
   return (
     <div className="relative flex h-screen overflow-hidden flex-col lg:flex-row">
       <LeftPanel />

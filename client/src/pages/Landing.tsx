@@ -222,7 +222,7 @@ function HexLogo({ size = 32 }: { size?: number }) {
       src="/logo.png"
       width={size}
       height={size}
-      alt="NammaFlow"
+      alt="ParkVUE"
       className="object-contain select-none"
       draggable={false}
     />
@@ -276,7 +276,7 @@ function Navbar() {
           </motion.div>
           <span className={cn('font-bold text-lg tracking-tight transition-colors duration-200',
             scrolled ? 'text-gray-900' : 'text-gray-800')}>
-            NammaFlow
+            ParkVUE
           </span>
         </Link>
 
@@ -339,7 +339,7 @@ function HeroSection() {
             backgroundSize: '200% auto',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
           }}>
-          NammaFlow
+          ParkVUE
         </motion.h1>
 
         {/* Subheading */}
@@ -913,7 +913,7 @@ function PhoneMockup() {
           }}>
             <img
               src={mobileAppImg}
-              alt="NammaFlow Officer App – Patrol Zones"
+              alt="ParkVUE Officer App – Patrol Zones"
               style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }}
             />
             {/* Subtle glass sheen */}
@@ -1081,7 +1081,7 @@ function Footer() {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
               <HexLogo size={26} />
-              <span className="font-bold text-base text-gray-900">NammaFlow</span>
+              <span className="font-bold text-base text-gray-900">ParkVUE</span>
             </div>
             <p className="text-xs leading-relaxed mb-5 text-gray-500">
               AI-powered parking enforcement intelligence, built for Bengaluru Traffic Police.
@@ -1130,7 +1130,7 @@ function Footer() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Landing() {
-  useEffect(() => { document.title = 'NammaFlow — BTP Parking Intelligence' }, [])
+  useEffect(() => { document.title = 'ParkVUE — BTP Parking Intelligence' }, [])
 
   return (
     <div className="bg-[#eef5ff]">

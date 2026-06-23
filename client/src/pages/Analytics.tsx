@@ -798,7 +798,7 @@ function PredictionExplainability() {
 }
 
 export default function Analytics() {
-  useEffect(() => { document.title = 'Operational Analytics — NammaFlow' }, [])
+  useEffect(() => { document.title = 'Operational Analytics — ParkVUE' }, [])
 
   const { data: ts,         loading: tsLoad } = useTimeseries()
   const { data: violations, loading: vLoad  } = useViolations()

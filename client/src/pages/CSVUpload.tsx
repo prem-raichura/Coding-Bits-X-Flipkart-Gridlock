@@ -94,7 +94,7 @@ export default function CSVUpload() {
   // Dialogs
   const [detailEntry, setDetailEntry] = useState<CSVUploadHistory | null>(null)
 
-  useEffect(() => { document.title = 'Dataset Management — NammaFlow' }, [])
+  useEffect(() => { document.title = 'Dataset Management — ParkVUE' }, [])
 
   // ─── Derived ──────────────────────────────────────────────────────────────
 

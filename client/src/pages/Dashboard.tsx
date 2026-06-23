@@ -1004,7 +1004,7 @@ function KPIRow({ total, critical_zones, avg_congestion_score, pending_approvals
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  useEffect(() => { document.title = 'Command Center — NammaFlow' }, [])
+  useEffect(() => { document.title = 'Command Center — ParkVUE' }, [])
 
   const [period, setPeriod] = useState<Period>('month')
 
